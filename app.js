@@ -379,7 +379,7 @@
       <div class="${showTabs ? "with-tabbar" : ""}">${content()}</div>
       ${state.screen === "idea" ? "" : (fab || detailFab)}
       ${tabbar}
-      ${state.sheet ? `<div class="sheet-backdrop" data-act="backdrop"><div class="sheet" onclick="event.stopPropagation()">${sheetHTML()}</div></div>` : ""}
+      ${state.sheet ? `<div class="sheet-backdrop" data-act="backdrop"><div class="sheet">${sheetHTML()}</div></div>` : ""}
     `;
   }
 
