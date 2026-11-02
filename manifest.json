@@ -1,0 +1,14 @@
+{
+  "name": "Ink Lore",
+  "short_name": "Ink Lore",
+  "description": "Tu libreta de ideas para fanfics",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FAF8FC",
+  "theme_color": "#B9A7E0",
+  "lang": "es",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
