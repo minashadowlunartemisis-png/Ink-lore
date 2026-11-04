@@ -2,56 +2,20 @@
   const STORE_KEY = "inkLore.v1";
   const THEME_KEY = "inkLore.theme";
 
-  // Secciones de lista dentro de cada historia
-  const LIST_SECTIONS = [
+  // Secciones de cada historia, según el documento del proyecto
+  const SECTIONS = [
     { key: "manuscrito", label: "Manuscrito", item: "Escena", ph: "Escribe una escena o capítulo" },
+    { key: "personajes", label: "Personajes", item: "Personaje", ph: "Nombre y descripción del personaje" },
+    { key: "universo", label: "Universo", item: "Elemento", ph: "Mundo, culturas, magia o sistemas" },
     { key: "cronologia", label: "Cronología", item: "Evento", ph: "Qué pasa y cuándo" },
     { key: "lugares", label: "Lugares", item: "Lugar", ph: "Nombre y descripción del lugar" },
     { key: "objetos", label: "Objetos", item: "Objeto", ph: "Artefactos y recursos" },
     { key: "lore", label: "Lore", item: "Secreto", ph: "Historia y secretos del universo" },
     { key: "archivo", label: "Archivo", item: "Referencia", ph: "Escenas descartadas, referencias, notas" },
   ];
+  const TABS = [{ key: "resumen", label: "Resumen" }, ...SECTIONS];
 
-  // Apartados del universo, según el documento
-  const UNI_SUBS = [
-    { key: "geografia", label: "Geografía" },
-    { key: "paises", label: "Países y ciudades" },
-    { key: "historia", label: "Historia y civilizaciones" },
-    { key: "culturas", label: "Culturas y sociedades" },
-    { key: "politica", label: "Política y religiones" },
-    { key: "flora", label: "Flora y fauna" },
-    { key: "tecnologia", label: "Tecnología" },
-    { key: "economia", label: "Economía" },
-    { key: "idiomas", label: "Idiomas" },
-    { key: "magia", label: "Sistemas mágicos" },
-    { key: "otros", label: "Otros" },
-  ];
-
-  // Campos de la ficha de personaje, según el documento
-  const CHAR_FIELDS = [
-    { key: "name", label: "Nombre", ph: "Nombre completo" },
-    { key: "alias", label: "Alias", ph: "Apodos o nombres alternos" },
-    { key: "age", label: "Edad", ph: "Edad o edad aproximada" },
-    { key: "pronouns", label: "Sexo y pronombres", ph: "ella, él, elle..." },
-    { key: "species", label: "Raza, especie o subraza", ph: "Humana, elfo, dragón..." },
-    { key: "appearance", label: "Apariencia física", ta: true },
-    { key: "personality", label: "Personalidad y psicología", ta: true },
-    { key: "abilities", label: "Habilidades y poderes", ta: true },
-    { key: "weaknesses", label: "Debilidades y limitaciones", ta: true },
-    { key: "history", label: "Historia y antecedentes", ta: true },
-    { key: "family", label: "Familia y relaciones", ta: true },
-    { key: "items", label: "Objetos y pertenencias", ta: true },
-    { key: "status", label: "Estado", select: ["vivo", "herido", "desaparecido", "fallecido", "otro"] },
-    { key: "evolution", label: "Evolución a lo largo de los capítulos", ta: true },
-  ];
-
-  const TABS = [
-    { key: "resumen", label: "Resumen" },
-    { key: "personajes", label: "Personajes" },
-    { key: "universo", label: "Universo" },
-    ...LIST_SECTIONS.map((x) => ({ key: x.key, label: x.label })),
-  ];
-
+  // Paleta del documento: lavanda, rosa, verde salvia y marfil
   const COVERS = ["#E9DDF4", "#F6E3EA", "#E3EEE9", "#F3E6CF", "#DCE6F5", "#EDE3D9"];
   const NOTES = ["#F6E3EA", "#FFF1C9", "#E3EEE9", "#E9DDF4", "#DDEFFB"];
 
@@ -64,52 +28,25 @@
   ];
   const TAB_SCREENS = ["home", "library", "search", "profile"];
 
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
-  const now = () => new Date().toISOString();
-
-  const emptyLists = () => Object.fromEntries(LIST_SECTIONS.map((s) => [s.key, []]));
-  const emptyData = () => ({ version: 3, stories: [], ideas: [] });
-
-  function newChar(data = {}) {
-    const base = Object.fromEntries(CHAR_FIELDS.map((f) => [f.key, f.key === "status" ? "vivo" : ""]));
-    return { id: uid(), ...base, ...data };
-  }
+  const emptySections = () => Object.fromEntries(SECTIONS.map((s) => [s.key, []]));
+  const emptyData = () => ({ version: 2, stories: [], ideas: [] });
 
   // Convierte datos de versiones anteriores al formato nuevo
   function migrate(d) {
     d.stories = (d.stories || []).map((s) => {
-      const v1 = !s.sections;
-      const sec = s.sections || {};
-      const strs = (k) => (Array.isArray(sec[k]) ? sec[k] : []);
-
-      const chars = [];
-      if (Array.isArray(s.characters)) {
-        s.characters.forEach((c) => chars.push(typeof c === "string" ? newChar({ name: c }) : newChar(c)));
+      if (!s.sections) {
+        s.sections = emptySections();
+        s.sections.manuscrito = s.scenes || [];
+        s.sections.personajes = s.characters || [];
+        s.sections.cronologia = s.plot || [];
+        s.sections.archivo = s.notes || [];
+        delete s.scenes; delete s.characters; delete s.plot; delete s.notes;
+      } else {
+        SECTIONS.forEach((x) => { s.sections[x.key] = s.sections[x.key] || []; });
       }
-      strs("personajes").forEach((t) => chars.push(newChar({ name: t })));
-
-      const uni = { ...(s.universe || {}) };
-      strs("universo").forEach((t) => { uni.otros = [...(uni.otros || []), t]; });
-
-      const lists = emptyLists();
-      LIST_SECTIONS.forEach((x) => { lists[x.key] = [...strs(x.key)]; });
-      if (v1) {
-        lists.manuscrito = s.scenes || [];
-        lists.cronologia = s.plot || [];
-        lists.archivo = s.notes || [];
-      }
-
-      const { scenes, plot, notes, characters, sections, universe, ...rest } = s;
-      return {
-        ...rest,
-        sections: lists,
-        characters: chars,
-        universe: uni,
-        tags: s.tags || [],
-        favorite: !!s.favorite,
-      };
+      s.tags = s.tags || [];
+      s.favorite = !!s.favorite;
+      return s;
     });
     d.ideas = (d.ideas || []).map((i) => ({ ...i, tags: i.tags || [], favorite: !!i.favorite }));
     return d;
@@ -129,14 +66,12 @@
     screen: "welcome",
     storyId: null,
     ideaId: null,
-    charId: null,
     storyTab: "resumen",
     sheet: null,
     libTab: "historias",
     onlyFav: false,
     query: "",
     hist: [],
-    uniOpen: {},
   };
 
   const app = document.getElementById("app");
@@ -148,6 +83,9 @@
       toast("No se pudo guardar. Revisa el espacio del celular.");
     }
   }
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const now = () => new Date().toISOString();
 
   const esc = (s) =>
     String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -165,10 +103,8 @@
   const byRecent = (a, b) => (b.updated || "").localeCompare(a.updated || "");
   const story = (id) => state.data.stories.find((s) => s.id === id);
   const idea = (id) => state.data.ideas.find((i) => i.id === id);
-  const char = (s, id) => (s ? s.characters.find((c) => c.id === id) : undefined);
   const parseTags = (v) => v.split(",").map((x) => x.trim()).filter(Boolean);
   const snippet = (t) => (t.length > 70 ? t.slice(0, 70) + "…" : t);
-  const uniCount = (s) => Object.values(s.universe || {}).reduce((n, a) => n + (a || []).length, 0);
 
   function toast(msg) {
     const old = document.querySelector(".toast");
@@ -217,7 +153,7 @@
   // Navegación: las pantallas de detalle se apilan para que "←" regrese donde estabas
   function go(screen, extra = {}, stack = false) {
     if (stack) {
-      state.hist.push({ screen: state.screen, storyId: state.storyId, ideaId: state.ideaId, charId: state.charId, storyTab: state.storyTab });
+      state.hist.push({ screen: state.screen, storyId: state.storyId, ideaId: state.ideaId, storyTab: state.storyTab });
     } else {
       state.hist = [];
     }
@@ -232,7 +168,6 @@
       screen: p.screen,
       storyId: p.storyId ?? null,
       ideaId: p.ideaId ?? null,
-      charId: p.charId ?? null,
       storyTab: p.storyTab || "resumen",
       sheet: null,
     });
@@ -267,13 +202,6 @@
   const addNoteHTML = `
     <div class="note add" data-act="sheetNewIdea">
       <span>+</span><small>Nueva nota</small>
-    </div>`;
-
-  const charCard = (s, c) => `
-    <div class="list-row" data-act="openChar" data-sid="${s.id}" data-id="${c.id}">
-      <span><b>${esc(c.name || "Sin nombre")}</b><br>
-      <small class="muted">${[c.alias, c.species, c.status].filter(Boolean).map(esc).join(" · ")}</small></span>
-      <span class="count">›</span>
     </div>`;
 
   const btnRow = (saveAct) => `
@@ -358,7 +286,7 @@
 
   function resultsHTML(q) {
     const t = q.trim().toLowerCase();
-    if (!t) return `<p class="empty">Busca en tus historias, personajes, universo y notas.</p>`;
+    if (!t) return `<p class="empty">Busca en tus historias, secciones y notas.</p>`;
     const hit = (...vals) => vals.some((v) => String(v ?? "").toLowerCase().includes(t));
     const rows = [];
 
@@ -370,26 +298,7 @@
             <span class="count">›</span>
           </div>`);
       }
-      s.characters.forEach((c) => {
-        if (hit(c.name, c.alias, c.species, c.appearance, c.personality, c.abilities, c.history, c.family)) {
-          rows.push(`
-            <div class="list-row" data-act="openChar" data-sid="${s.id}" data-id="${c.id}">
-              <span><b>${esc(c.name || "Sin nombre")}</b><br><small class="muted">Personaje · ${esc(s.title)}</small></span>
-              <span class="count">›</span>
-            </div>`);
-        }
-      });
-      UNI_SUBS.forEach((sub) => {
-        (s.universe[sub.key] || []).forEach((txt) => {
-          if (!hit(txt)) return;
-          rows.push(`
-            <div class="list-row" data-act="openStoryTab" data-id="${s.id}" data-tab="universo">
-              <span><b>${esc(snippet(txt))}</b><br><small class="muted">Universo · ${sub.label} · ${esc(s.title)}</small></span>
-              <span class="count">›</span>
-            </div>`);
-        });
-      });
-      LIST_SECTIONS.forEach((sec) => {
+      SECTIONS.forEach((sec) => {
         (s.sections[sec.key] || []).forEach((txt) => {
           if (!hit(txt)) return;
           rows.push(`
@@ -445,7 +354,7 @@
       </div>`;
   }
 
-  function listEditor(sec, items) {
+  function listEditor(s, sec, items) {
     return `
       ${items.map((it, idx) => `
         <div class="panel">
@@ -463,28 +372,6 @@
       </div>`;
   }
 
-  function universeBody(s) {
-    return `
-      <p class="hint">Organiza tu mundo por apartados. Toca uno para abrirlo.</p>
-      ${UNI_SUBS.map((sub) => {
-        const items = s.universe[sub.key] || [];
-        const open = state.uniOpen[sub.key] ?? items.length > 0;
-        return `
-          <details class="panel uni" data-sub="${sub.key}" ${open ? "open" : ""}>
-            <summary><span>${sub.label}</span><span class="count">${items.length}</span></summary>
-            <div class="uni-body">
-              ${items.map((t, idx) => `
-                <div class="uni-item">
-                  <p>${esc(t)}</p>
-                  <button class="link-btn" data-act="delUni" data-sub="${sub.key}" data-idx="${idx}">Eliminar</button>
-                </div>`).join("")}
-              <textarea id="uni_${sub.key}" placeholder="Agregar a ${esc(sub.label.toLowerCase())}"></textarea>
-              <div class="btn-row"><button class="btn-primary" data-act="addUni" data-sub="${sub.key}">Agregar</button></div>
-            </div>
-          </details>`;
-      }).join("")}`;
-  }
-
   function storyScreen() {
     const s = story(state.storyId);
     if (!s) return `<p class="empty">Esta historia ya no existe.</p>`;
@@ -493,35 +380,24 @@
 
     let body;
     if (t === "resumen") {
-      const rows = [
-        ["personajes", "Personajes", s.characters.length],
-        ["universo", "Universo", uniCount(s)],
-        ...LIST_SECTIONS.map((x) => [x.key, x.label, (s.sections[x.key] || []).length]),
-      ];
       body = `
         <div class="panel"><h4>Sinopsis</h4><p>${esc(s.synopsis) || "Escribe una sinopsis con el botón ✎."}</p></div>
-        ${rows.map(([k, l, n]) => `
-          <div class="list-row" data-act="setTab" data-tab="${k}">
-            <span>${l}</span><span class="count">${n} ›</span>
+        ${SECTIONS.map((sec) => `
+          <div class="list-row" data-act="setTab" data-tab="${sec.key}">
+            <span>${sec.label}</span>
+            <span class="count">${(s.sections[sec.key] || []).length} ›</span>
           </div>`).join("")}
         <div class="list-row add-row" data-act="noteForStory"><span>＋ Nueva nota para esta historia</span></div>
         ${related.length ? `
           <div class="section-head"><span>Notas relacionadas</span></div>
           <div class="notes">${related.map(noteHTML).join("")}</div>` : ""}`;
-    } else if (t === "personajes") {
-      body = `
-        ${s.characters.map((c) => charCard(s, c)).join("")}
-        <div class="list-row add-row" data-act="addChar"><span>＋ Nuevo personaje</span></div>
-        ${s.characters.length ? "" : `<p class="empty">Aún no tienes personajes. Crea su ficha con el botón de arriba.</p>`}`;
-    } else if (t === "universo") {
-      body = universeBody(s);
     } else {
-      const sec = LIST_SECTIONS.find((x) => x.key === t) || LIST_SECTIONS[0];
+      const sec = SECTIONS.find((x) => x.key === t) || SECTIONS[0];
       const items = s.sections[sec.key] || [];
       const words = sec.key === "manuscrito"
         ? items.join(" ").split(/\s+/).filter(Boolean).length
         : null;
-      body = (words !== null ? `<p class="counter">${words} palabras</p>` : "") + listEditor(sec, items);
+      body = (words !== null ? `<p class="counter">${words} palabras</p>` : "") + listEditor(s, sec, items);
     }
 
     return `
@@ -544,36 +420,6 @@
         ${TABS.map((x) => `<button class="${x.key === t ? "active" : ""}" data-act="setTab" data-tab="${x.key}">${x.label}</button>`).join("")}
       </div>
       ${body}`;
-  }
-
-  function characterScreen() {
-    const s = story(state.storyId);
-    const c = char(s, state.charId);
-    if (!c) return `<p class="empty">Esta ficha ya no existe.</p>`;
-    const fields = CHAR_FIELDS.filter((f) => !["name", "alias", "status"].includes(f.key) && c[f.key]);
-    return `
-      <header class="topbar">
-        <button class="icon-btn" data-act="back" aria-label="Volver">←</button>
-        <div class="actions">
-          <button class="icon-btn" data-act="editChar" aria-label="Editar">✎</button>
-        </div>
-      </header>
-      <div class="hero">
-        <div class="hero-cover" style="background:${coverColor(c.id)}">
-          <div class="cover-title serif">${esc(c.name || "Sin nombre")}</div>
-        </div>
-        <div class="author">${esc(c.alias || "")}</div>
-        <div class="chips">
-          <span class="chip">${esc(c.status || "vivo")}</span>
-          ${c.age ? `<span class="chip">Edad: ${esc(c.age)}</span>` : ""}
-          ${c.pronouns ? `<span class="chip">${esc(c.pronouns)}</span>` : ""}
-        </div>
-      </div>
-      ${fields.map((f) => `<div class="panel"><h4>${f.label}</h4><p>${esc(c[f.key])}</p></div>`).join("") ||
-        `<p class="empty">La ficha está vacía. Toca ✎ para completarla.</p>`}
-      <div class="btn-row">
-        <button class="btn-danger" data-act="delChar">Eliminar personaje</button>
-      </div>`;
   }
 
   function ideaScreen() {
@@ -621,23 +467,6 @@
           <label>Sinopsis<textarea id="f_synopsis" placeholder="Una nueva generación descubre...">${esc(st.synopsis)}</textarea></label>
           <label>Etiquetas (separadas por coma)<input id="f_tags" value="${esc((st.tags || []).join(", "))}" placeholder="Aventura, Misterio"></label>
           ${btnRow("saveStory")}
-        </div>`;
-    }
-
-    if (s === "charForm") {
-      const c = state.charId ? char(story(state.storyId), state.charId) || {} : {};
-      return `
-        <h3 class="serif">${state.charId ? "Ficha de personaje" : "Nuevo personaje"}</h3>
-        <div class="form">
-          ${CHAR_FIELDS.map((f) => {
-            if (f.select) {
-              const cur = c[f.key] || "vivo";
-              return `<label>${f.label}<select id="c_${f.key}">${f.select.map((o) => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}</select></label>`;
-            }
-            if (f.ta) return `<label>${f.label}<textarea id="c_${f.key}">${esc(c[f.key])}</textarea></label>`;
-            return `<label>${f.label}<input id="c_${f.key}" value="${esc(c[f.key])}" placeholder="${esc(f.ph || "")}"></label>`;
-          }).join("")}
-          ${btnRow("saveChar")}
         </div>`;
     }
 
@@ -691,7 +520,6 @@
       case "search": return searchScreen();
       case "profile": return profileScreen();
       case "story": return storyScreen();
-      case "character": return characterScreen();
       case "idea": return ideaScreen();
       default: return homeScreen();
     }
@@ -715,6 +543,7 @@
         ? `<div class="sheet-backdrop" data-act="backdrop"><div class="sheet">${sheetHTML()}</div></div>`
         : ""}`;
 
+    // Buscador en vivo: actualiza solo los resultados, para no perder el foco del teclado
     if (state.screen === "search") {
       const q = document.getElementById("q");
       const r = document.getElementById("results");
@@ -727,12 +556,6 @@
     }
   }
 
-  // Recuerda qué apartados del universo quedaron abiertos
-  app.addEventListener("toggle", (e) => {
-    const d = e.target;
-    if (d && d.dataset && d.dataset.sub) state.uniOpen[d.dataset.sub] = d.open;
-  }, true);
-
   // ---------- Acciones ----------
   const actions = {
     start: () => go("home"),
@@ -741,11 +564,11 @@
       if (el.dataset.screen === "create") return openSheet("create");
       go(el.dataset.screen);
     },
+    search: () => go("search"),
 
     openStory: (el) => go("story", { storyId: el.dataset.id, storyTab: "resumen" }, true),
     openStoryTab: (el) => go("story", { storyId: el.dataset.id, storyTab: el.dataset.tab }, true),
     openIdea: (el) => go("idea", { ideaId: el.dataset.id }, true),
-    openChar: (el) => go("character", { storyId: el.dataset.sid, charId: el.dataset.id }, true),
     setTab: (el) => { state.storyTab = el.dataset.tab; render(); },
 
     libTab: (el) => { state.libTab = el.dataset.tab; render(); },
@@ -760,8 +583,6 @@
     sheetNewStory: () => openSheet("newStory"),
     sheetNewIdea: () => openSheet("newIdea"),
     noteForStory: () => openSheet("newIdea"),
-    addChar: () => { state.charId = null; openSheet("charForm"); },
-    editChar: () => openSheet("charForm"),
     editStory: () => openSheet("editStory"),
     editIdea: () => openSheet("editIdea"),
     storyMenu: () => openSheet("storyMenu"),
@@ -794,41 +615,13 @@
         Object.assign(story(state.storyId), payload);
       } else {
         state.data.stories.unshift({
-          id: uid(), created: now(), favorite: false,
-          sections: emptyLists(), characters: [], universe: {},
-          ...payload,
+          id: uid(), created: now(), favorite: false, sections: emptySections(), ...payload,
         });
       }
       save();
       state.sheet = null;
       toast("Historia guardada");
       render();
-    },
-
-    saveChar: () => {
-      const name = document.getElementById("c_name").value.trim();
-      if (!name) return toast("Escribe el nombre del personaje");
-      const data = {};
-      CHAR_FIELDS.forEach((f) => { data[f.key] = document.getElementById("c_" + f.key).value.trim(); });
-      data.updated = now();
-      const s = story(state.storyId);
-      if (state.charId) Object.assign(char(s, state.charId), data);
-      else s.characters.push(newChar(data));
-      s.updated = now();
-      save();
-      state.sheet = null;
-      toast("Ficha guardada");
-      render();
-    },
-
-    delChar: () => {
-      if (!confirm("¿Eliminar este personaje?")) return;
-      const s = story(state.storyId);
-      s.characters = s.characters.filter((c) => c.id !== state.charId);
-      s.updated = now();
-      save();
-      back();
-      toast("Personaje eliminado");
     },
 
     saveIdea: () => {
@@ -887,30 +680,12 @@
       save(); render();
     },
 
-    addUni: (el) => {
-      const field = document.getElementById("uni_" + el.dataset.sub);
-      const txt = field.value.trim();
-      if (!txt) return toast("Escribe algo primero");
-      const s = story(state.storyId);
-      s.universe[el.dataset.sub] = [...(s.universe[el.dataset.sub] || []), txt];
-      state.uniOpen[el.dataset.sub] = true;
-      s.updated = now();
-      save(); render();
-    },
-
-    delUni: (el) => {
-      const s = story(state.storyId);
-      s.universe[el.dataset.sub].splice(Number(el.dataset.idx), 1);
-      s.updated = now();
-      save(); render();
-    },
-
     exportStory: () => {
       const s = story(state.storyId);
       if (!s) return;
       const payload = {
         format: "ink-lore-story",
-        version: 3,
+        version: 2,
         story: s,
         notes: state.data.ideas.filter((i) => i.storyId === s.id),
       };
