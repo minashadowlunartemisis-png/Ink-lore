@@ -1,15 +1,33 @@
+/* Paleta del documento: lavanda #E9DDF4, rosa #F6E3EA, verde salvia #E3EEE9, marfil #FAF7F2 */
 :root {
-  --bg: #FAF8FC;
+  --bg: #FAF7F2;
   --surface: #FFFFFF;
-  --card: #F3EFF9;
+  --card: #F1EAF8;
+  --lavender: #E9DDF4;
+  --pink: #F6E3EA;
+  --sage: #E3EEE9;
   --ink: #2B2540;
   --muted: #7A7290;
-  --accent: #9C86D0;
-  --accent-soft: #E6DDF5;
-  --pink: #E8A6B8;
-  --pink-soft: #FBE3EA;
-  --line: #E9E4F0;
+  --accent: #8E74C4;
+  --accent-soft: #E9DDF4;
+  --danger: #B0425F;
+  --line: #E6DFEE;
   --radius: 18px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #17141F;
+  --surface: #1F1B2A;
+  --card: #2A2536;
+  --lavender: #3A3150;
+  --pink: #3B2A33;
+  --sage: #22302A;
+  --ink: #F1EDF8;
+  --muted: #A59DB8;
+  --accent: #B9A7E0;
+  --accent-soft: #3A3150;
+  --danger: #E8A6B8;
+  --line: #332D42;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,11 +35,14 @@
     --bg: #17141F;
     --surface: #1F1B2A;
     --card: #2A2536;
+    --lavender: #3A3150;
+    --pink: #3B2A33;
+    --sage: #22302A;
     --ink: #F1EDF8;
     --muted: #A59DB8;
     --accent: #B9A7E0;
     --accent-soft: #3A3150;
-    --pink-soft: #3B2A33;
+    --danger: #E8A6B8;
     --line: #332D42;
   }
 }
@@ -46,7 +67,8 @@ html, body {
 
 .serif { font-family: Georgia, "Times New Roman", serif; }
 .small { font-size: 13px; margin-top: 12px; }
-.danger-text { color: #B0425F; }
+.muted { color: var(--muted); }
+.danger-text { color: var(--danger); }
 
 button {
   font: inherit;
@@ -70,7 +92,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 textarea { min-height: 110px; resize: vertical; }
 
 .page { padding-top: 8px; }
-.with-tabbar { padding-bottom: 110px; }
+.with-tabbar { padding-bottom: 100px; }
 
 /* Bienvenida */
 .welcome {
@@ -96,7 +118,7 @@ textarea { min-height: 110px; resize: vertical; }
   font-size: 16px;
   width: 100%;
 }
-.btn-primary.big { width: 100%; margin-top: 30px; padding: 16px; font-size: 17px; }
+.btn-primary.big { margin-top: 30px; padding: 16px; font-size: 17px; }
 
 /* Encabezados */
 .topbar {
@@ -129,6 +151,25 @@ textarea { min-height: 110px; resize: vertical; }
   font-weight: 600;
 }
 .link-btn { color: var(--accent); font-size: 14px; }
+
+/* Segmentos y filtros */
+.segment {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  background: var(--lavender);
+  border-radius: 999px;
+  padding: 4px;
+  margin: 8px 0 12px;
+}
+.segment button {
+  padding: 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+.segment button.on { background: var(--surface); color: var(--accent); }
 
 /* Portadas de historias */
 .covers {
@@ -232,6 +273,7 @@ textarea { min-height: 110px; resize: vertical; }
   background: var(--accent-soft);
   font-size: 13px;
 }
+button.chip.on { background: var(--accent); color: #fff; }
 
 .tabs {
   display: flex;
@@ -239,6 +281,7 @@ textarea { min-height: 110px; resize: vertical; }
   overflow-x: auto;
   border-bottom: 1px solid var(--line);
   margin-bottom: 16px;
+  scrollbar-width: none;
 }
 .tabs button {
   padding: 10px 0;
@@ -252,13 +295,16 @@ textarea { min-height: 110px; resize: vertical; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 14px 16px;
   background: var(--card);
   border-radius: 14px;
   margin-bottom: 8px;
   cursor: pointer;
 }
-.list-row .count { color: var(--muted); }
+.list-row .count { color: var(--muted); flex-shrink: 0; }
+.list-row b { font-weight: 600; }
+.add-row { color: var(--accent); font-weight: 600; background: var(--sage); }
 
 .panel {
   background: var(--card);
@@ -276,25 +322,10 @@ textarea { min-height: 110px; resize: vertical; }
 }
 .panel-head h4 { margin: 0; }
 
+.counter { color: var(--muted); font-size: 13px; margin: 0 0 10px 4px; }
 .empty { color: var(--muted); text-align: center; padding: 24px 10px; }
-
-/* Botón flotante */
-.fab {
-  position: fixed;
-  right: max(20px, calc(50% - 220px));
-  bottom: calc(24px + env(safe-area-inset-bottom));
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 28px;
-  box-shadow: 0 8px 20px rgba(60, 40, 110, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
+.results { margin-top: 14px; }
+#q { margin-top: 8px; }
 
 /* Barra inferior */
 .tabbar {
@@ -308,19 +339,34 @@ textarea { min-height: 110px; resize: vertical; }
   border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-around;
-  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  align-items: flex-end;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
   z-index: 5;
 }
 .tabbar button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 2px;
+  font-size: 11px;
   color: var(--muted);
+  min-width: 56px;
 }
 .tabbar button.active { color: var(--accent); }
 .tabbar .glyph { font-size: 20px; }
+.tabbar button.create .glyph {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -22px;
+  box-shadow: 0 8px 18px rgba(60, 40, 110, 0.25);
+}
 
 /* Formularios */
 .form { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
@@ -328,7 +374,7 @@ textarea { min-height: 110px; resize: vertical; }
 .btn-row { display: flex; gap: 10px; margin-top: 10px; }
 .btn-row > button { flex: 1; padding: 14px; border-radius: 999px; font-weight: 600; }
 .btn-ghost { background: var(--accent-soft); }
-.btn-danger { background: var(--pink-soft); color: #B0425F; }
+.btn-danger { background: var(--pink); color: var(--danger); }
 
 /* Hoja modal */
 .sheet-backdrop {
@@ -350,7 +396,6 @@ textarea { min-height: 110px; resize: vertical; }
   overflow-y: auto;
 }
 .sheet h3 { margin-bottom: 12px; }
-.sheet .list-row { margin-bottom: 8px; }
 
 .toast {
   position: fixed;
@@ -365,3 +410,6 @@ textarea { min-height: 110px; resize: vertical; }
   z-index: 30;
   white-space: nowrap;
 }
+
+/* Bienvenida: el logo usa el color de acento */
+.welcome .tagline { color: var(--muted); }

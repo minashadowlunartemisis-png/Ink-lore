@@ -1,25 +1,61 @@
 (() => {
   const STORE_KEY = "inkLore.v1";
-  const TABS = ["Resumen", "Personajes", "Trama", "Notas", "Escenas"];
-  const COVERS = ["#C9B6EE", "#F4B9C9", "#B8E0D2", "#F7D9A8", "#B9CBF2", "#E9B8DD"];
-  const NOTES = ["#FBE3EA", "#FFF1C9", "#E3F3EA", "#E6E0F7", "#DDEFFB"];
+  const THEME_KEY = "inkLore.theme";
+
+  // Secciones de cada historia, según el documento del proyecto
+  const SECTIONS = [
+    { key: "manuscrito", label: "Manuscrito", item: "Escena", ph: "Escribe una escena o capítulo" },
+    { key: "personajes", label: "Personajes", item: "Personaje", ph: "Nombre y descripción del personaje" },
+    { key: "universo", label: "Universo", item: "Elemento", ph: "Mundo, culturas, magia o sistemas" },
+    { key: "cronologia", label: "Cronología", item: "Evento", ph: "Qué pasa y cuándo" },
+    { key: "lugares", label: "Lugares", item: "Lugar", ph: "Nombre y descripción del lugar" },
+    { key: "objetos", label: "Objetos", item: "Objeto", ph: "Artefactos y recursos" },
+    { key: "lore", label: "Lore", item: "Secreto", ph: "Historia y secretos del universo" },
+    { key: "archivo", label: "Archivo", item: "Referencia", ph: "Escenas descartadas, referencias, notas" },
+  ];
+  const TABS = [{ key: "resumen", label: "Resumen" }, ...SECTIONS];
+
+  // Paleta del documento: lavanda, rosa, verde salvia y marfil
+  const COVERS = ["#E9DDF4", "#F6E3EA", "#E3EEE9", "#F3E6CF", "#DCE6F5", "#EDE3D9"];
+  const NOTES = ["#F6E3EA", "#FFF1C9", "#E3EEE9", "#E9DDF4", "#DDEFFB"];
+
   const TABBAR = [
     ["home", "⌂", "Inicio"],
-    ["explore", "◎", "Explorar"],
-    ["favorites", "♡", "Favoritos"],
+    ["library", "▤", "Biblioteca"],
+    ["create", "+", "Crear"],
+    ["search", "⌕", "Buscar"],
     ["profile", "☺", "Perfil"],
   ];
-  const TAB_SCREENS = ["home", "explore", "favorites", "profile"];
+  const TAB_SCREENS = ["home", "library", "search", "profile"];
 
-  const emptyData = () => ({ version: 1, stories: [], ideas: [] });
+  const emptySections = () => Object.fromEntries(SECTIONS.map((s) => [s.key, []]));
+  const emptyData = () => ({ version: 2, stories: [], ideas: [] });
+
+  // Convierte datos de versiones anteriores al formato nuevo
+  function migrate(d) {
+    d.stories = (d.stories || []).map((s) => {
+      if (!s.sections) {
+        s.sections = emptySections();
+        s.sections.manuscrito = s.scenes || [];
+        s.sections.personajes = s.characters || [];
+        s.sections.cronologia = s.plot || [];
+        s.sections.archivo = s.notes || [];
+        delete s.scenes; delete s.characters; delete s.plot; delete s.notes;
+      } else {
+        SECTIONS.forEach((x) => { s.sections[x.key] = s.sections[x.key] || []; });
+      }
+      s.tags = s.tags || [];
+      s.favorite = !!s.favorite;
+      return s;
+    });
+    d.ideas = (d.ideas || []).map((i) => ({ ...i, tags: i.tags || [], favorite: !!i.favorite }));
+    return d;
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      const d = raw ? JSON.parse(raw) : emptyData();
-      d.stories = d.stories || [];
-      d.ideas = d.ideas || [];
-      return d;
+      return migrate(raw ? JSON.parse(raw) : emptyData());
     } catch (e) {
       return emptyData();
     }
@@ -30,8 +66,12 @@
     screen: "welcome",
     storyId: null,
     ideaId: null,
-    storyTab: "Resumen",
+    storyTab: "resumen",
     sheet: null,
+    libTab: "historias",
+    onlyFav: false,
+    query: "",
+    hist: [],
   };
 
   const app = document.getElementById("app");
@@ -64,6 +104,7 @@
   const story = (id) => state.data.stories.find((s) => s.id === id);
   const idea = (id) => state.data.ideas.find((i) => i.id === id);
   const parseTags = (v) => v.split(",").map((x) => x.trim()).filter(Boolean);
+  const snippet = (t) => (t.length > 70 ? t.slice(0, 70) + "…" : t);
 
   function toast(msg) {
     const old = document.querySelector(".toast");
@@ -101,8 +142,35 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function go(screen, extra = {}) {
+  function currentTheme() {
+    try { return localStorage.getItem(THEME_KEY) || "auto"; } catch (e) { return "auto"; }
+  }
+  function applyTheme(t) {
+    if (t === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+  }
+
+  // Navegación: las pantallas de detalle se apilan para que "←" regrese donde estabas
+  function go(screen, extra = {}, stack = false) {
+    if (stack) {
+      state.hist.push({ screen: state.screen, storyId: state.storyId, ideaId: state.ideaId, storyTab: state.storyTab });
+    } else {
+      state.hist = [];
+    }
     Object.assign(state, { screen, sheet: null }, extra);
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function back() {
+    const p = state.hist.pop() || { screen: "home" };
+    Object.assign(state, {
+      screen: p.screen,
+      storyId: p.storyId ?? null,
+      ideaId: p.ideaId ?? null,
+      storyTab: p.storyTab || "resumen",
+      sheet: null,
+    });
     render();
     window.scrollTo(0, 0);
   }
@@ -162,7 +230,6 @@
           <h1 class="screen-title serif">¡Hola, escritora!</h1>
           <p class="subtitle">¿Qué historia vamos a crear hoy?</p>
         </div>
-        <button class="icon-btn" data-act="search" aria-label="Buscar">⌕</button>
       </header>
       <div class="section-head"><span>Mis historias</span></div>
       <div class="covers">${stories.map(coverHTML).join("")}${addCoverHTML}</div>
@@ -170,37 +237,97 @@
       <div class="notes">${ideas.map(noteHTML).join("")}${addNoteHTML}</div>`;
   }
 
-  function exploreScreen() {
-    const stories = [...state.data.stories].sort((a, b) => a.title.localeCompare(b.title));
+  function libraryScreen() {
+    const isStories = state.libTab === "historias";
+    const stories = state.data.stories.filter((s) => !state.onlyFav || s.favorite).sort(byRecent);
+    const notes = state.data.ideas.filter((i) => !state.onlyFav || i.favorite).sort(byRecent);
+
+    let body;
+    if (isStories) {
+      if (!stories.length && state.onlyFav) body = `<p class="empty">No tienes historias favoritas.</p>`;
+      else body = `<div class="covers">${stories.map(coverHTML).join("")}${state.onlyFav ? "" : addCoverHTML}</div>`;
+      if (!state.data.stories.length) {
+        body += `<p class="empty">Aún no tienes historias.</p>
+                 <div class="btn-row"><button class="btn-ghost" data-act="importStory">📥 Importar una historia</button></div>`;
+      }
+    } else {
+      if (!notes.length && state.onlyFav) body = `<p class="empty">No tienes notas favoritas.</p>`;
+      else body = `<div class="notes">${notes.map(noteHTML).join("")}${state.onlyFav ? "" : addNoteHTML}</div>`;
+    }
+
     return `
       <header class="topbar">
         <div>
-          <h1 class="screen-title serif">Explorar</h1>
-          <p class="subtitle">Todas tus historias</p>
+          <h1 class="screen-title serif">Biblioteca</h1>
+          <p class="subtitle">Todas tus historias y notas</p>
         </div>
       </header>
-      <div class="covers">${stories.map(coverHTML).join("")}${addCoverHTML}</div>`;
+      <div class="segment">
+        <button class="${isStories ? "on" : ""}" data-act="libTab" data-tab="historias">Historias</button>
+        <button class="${!isStories ? "on" : ""}" data-act="libTab" data-tab="notas">Notas</button>
+      </div>
+      <div class="chips">
+        <button class="chip ${state.onlyFav ? "on" : ""}" data-act="toggleFav">★ Solo favoritas</button>
+      </div>
+      ${body}`;
   }
 
-  function favoritesScreen() {
-    const favs = state.data.stories.filter((s) => s.favorite);
-    const favIdeas = state.data.ideas.filter((i) => i.favorite);
+  function searchScreen() {
     return `
       <header class="topbar">
         <div>
-          <h1 class="screen-title serif">Favoritos</h1>
-          <p class="subtitle">Lo que más te gusta</p>
+          <h1 class="screen-title serif">Buscar</h1>
+          <p class="subtitle">Personajes, lugares, notas y más</p>
         </div>
       </header>
-      <div class="section-head"><span>Historias</span></div>
-      <div class="covers">${favs.map(coverHTML).join("")}</div>
-      ${favs.length ? "" : `<p class="empty">Marca historias con ☆ para verlas aquí.</p>`}
-      <div class="section-head"><span>Notas</span></div>
-      <div class="notes">${favIdeas.map(noteHTML).join("")}</div>
-      ${favIdeas.length ? "" : `<p class="empty">Sin notas favoritas.</p>`}`;
+      <input id="q" type="search" placeholder="Escribe para buscar…" value="${esc(state.query)}">
+      <div id="results" class="results">${resultsHTML(state.query)}</div>`;
+  }
+
+  function resultsHTML(q) {
+    const t = q.trim().toLowerCase();
+    if (!t) return `<p class="empty">Busca en tus historias, secciones y notas.</p>`;
+    const hit = (...vals) => vals.some((v) => String(v ?? "").toLowerCase().includes(t));
+    const rows = [];
+
+    state.data.stories.forEach((s) => {
+      if (hit(s.title, s.author, s.synopsis, ...(s.tags || []))) {
+        rows.push(`
+          <div class="list-row" data-act="openStory" data-id="${s.id}">
+            <span><b>${esc(s.title)}</b><br><small class="muted">Historia · ${esc(s.author || "")}</small></span>
+            <span class="count">›</span>
+          </div>`);
+      }
+      SECTIONS.forEach((sec) => {
+        (s.sections[sec.key] || []).forEach((txt) => {
+          if (!hit(txt)) return;
+          rows.push(`
+            <div class="list-row" data-act="openStoryTab" data-id="${s.id}" data-tab="${sec.key}">
+              <span><b>${esc(snippet(txt))}</b><br><small class="muted">${sec.label} · ${esc(s.title)}</small></span>
+              <span class="count">›</span>
+            </div>`);
+        });
+      });
+    });
+
+    state.data.ideas.forEach((i) => {
+      if (hit(i.title, i.description, i.notes, ...(i.tags || []))) {
+        rows.push(`
+          <div class="list-row" data-act="openIdea" data-id="${i.id}">
+            <span><b>${esc(i.title)}</b><br><small class="muted">Nota</small></span>
+            <span class="count">›</span>
+          </div>`);
+      }
+    });
+
+    return rows.length
+      ? rows.slice(0, 50).join("")
+      : `<p class="empty">Sin resultados para "${esc(q)}".</p>`;
   }
 
   function profileScreen() {
+    const theme = currentTheme();
+    const opts = [["auto", "Automático"], ["light", "Claro"], ["dark", "Oscuro"]];
     return `
       <header class="topbar">
         <div>
@@ -209,8 +336,14 @@
         </div>
       </header>
       <div class="panel">
+        <h4>Apariencia</h4>
+        <div class="segment">
+          ${opts.map(([k, l]) => `<button class="${theme === k ? "on" : ""}" data-act="setTheme" data-theme="${k}">${l}</button>`).join("")}
+        </div>
+      </div>
+      <div class="panel">
         <h4>Respaldos</h4>
-        <p>Cada historia tiene su propio respaldo. Ábrela, toca ⋮ y elige Exportar. Para recuperarla, usa Importar dentro de cualquier historia.</p>
+        <p>Cada historia tiene su respaldo. Ábrela, toca ⋮ y elige Exportar. Para recuperarla en otro celular, usa Importar en esa misma opción.</p>
       </div>
       <div class="panel">
         <h4>Resumen</h4>
@@ -221,21 +354,20 @@
       </div>`;
   }
 
-  function listEditor(s, key, label, placeholder) {
-    const items = s[key] || [];
+  function listEditor(s, sec, items) {
     return `
       ${items.map((it, idx) => `
         <div class="panel">
           <div class="panel-head">
-            <h4>${label} ${idx + 1}</h4>
-            <button class="link-btn" data-act="delItem" data-key="${key}" data-idx="${idx}">Eliminar</button>
+            <h4>${sec.item} ${idx + 1}</h4>
+            <button class="link-btn" data-act="delItem" data-key="${sec.key}" data-idx="${idx}">Eliminar</button>
           </div>
           <p>${esc(it)}</p>
         </div>`).join("")}
       <div class="panel">
-        <textarea id="newItem" placeholder="${placeholder}"></textarea>
+        <textarea id="newItem" placeholder="${sec.ph}"></textarea>
         <div class="btn-row">
-          <button class="btn-primary" data-act="addItem" data-key="${key}">Agregar</button>
+          <button class="btn-primary" data-act="addItem" data-key="${sec.key}">Agregar</button>
         </div>
       </div>`;
   }
@@ -243,40 +375,34 @@
   function storyScreen() {
     const s = story(state.storyId);
     if (!s) return `<p class="empty">Esta historia ya no existe.</p>`;
-    const related = state.data.ideas.filter((i) => i.storyId === s.id);
-    const counts = {
-      Personajes: (s.characters || []).length,
-      Trama: (s.plot || []).length,
-      Notas: (s.notes || []).length,
-      Escenas: (s.scenes || []).length,
-    };
-    const lists = {
-      Personajes: ["characters", "Personaje", "Nombre del personaje"],
-      Trama: ["plot", "Evento", "Qué pasa"],
-      Notas: ["notes", "Nota", "Escribe una nota"],
-      Escenas: ["scenes", "Escena", "Describe la escena"],
-    };
     const t = state.storyTab;
+    const related = state.data.ideas.filter((i) => i.storyId === s.id);
 
     let body;
-    if (t === "Resumen") {
+    if (t === "resumen") {
       body = `
-        <div class="panel"><h4>Sinopsis</h4><p>${esc(s.synopsis) || "Escribe una sinopsis."}</p></div>
-        ${Object.keys(counts).map((k) => `
-          <div class="list-row" data-act="setTab" data-tab="${k}">
-            <span>${k}</span><span class="count">${counts[k]} ›</span>
+        <div class="panel"><h4>Sinopsis</h4><p>${esc(s.synopsis) || "Escribe una sinopsis con el botón ✎."}</p></div>
+        ${SECTIONS.map((sec) => `
+          <div class="list-row" data-act="setTab" data-tab="${sec.key}">
+            <span>${sec.label}</span>
+            <span class="count">${(s.sections[sec.key] || []).length} ›</span>
           </div>`).join("")}
+        <div class="list-row add-row" data-act="noteForStory"><span>＋ Nueva nota para esta historia</span></div>
         ${related.length ? `
           <div class="section-head"><span>Notas relacionadas</span></div>
           <div class="notes">${related.map(noteHTML).join("")}</div>` : ""}`;
     } else {
-      const [key, label, ph] = lists[t];
-      body = listEditor(s, key, label, ph);
+      const sec = SECTIONS.find((x) => x.key === t) || SECTIONS[0];
+      const items = s.sections[sec.key] || [];
+      const words = sec.key === "manuscrito"
+        ? items.join(" ").split(/\s+/).filter(Boolean).length
+        : null;
+      body = (words !== null ? `<p class="counter">${words} palabras</p>` : "") + listEditor(s, sec, items);
     }
 
     return `
       <header class="topbar">
-        <button class="icon-btn" data-act="go" data-screen="home" aria-label="Volver">←</button>
+        <button class="icon-btn" data-act="back" aria-label="Volver">←</button>
         <div class="actions">
           <button class="icon-btn" data-act="favStory" aria-label="Favorito">${s.favorite ? "★" : "☆"}</button>
           <button class="icon-btn" data-act="editStory" aria-label="Editar">✎</button>
@@ -291,10 +417,9 @@
       </div>
       <div class="chips">${(s.tags || []).map((g) => `<span class="chip">${esc(g)}</span>`).join("")}</div>
       <div class="tabs">
-        ${TABS.map((k) => `<button class="${k === t ? "active" : ""}" data-act="setTab" data-tab="${k}">${k}</button>`).join("")}
+        ${TABS.map((x) => `<button class="${x.key === t ? "active" : ""}" data-act="setTab" data-tab="${x.key}">${x.label}</button>`).join("")}
       </div>
-      ${body}
-      <button class="fab" data-act="sheetNewIdea" aria-label="Nueva nota">+</button>`;
+      ${body}`;
   }
 
   function ideaScreen() {
@@ -303,7 +428,7 @@
     const linked = i.storyId && story(i.storyId);
     return `
       <header class="topbar">
-        <button class="icon-btn" data-act="go" data-screen="home" aria-label="Volver">←</button>
+        <button class="icon-btn" data-act="back" aria-label="Volver">←</button>
         <div class="actions">
           <button class="icon-btn" data-act="favIdea" aria-label="Favorito">${i.favorite ? "★" : "☆"}</button>
           <button class="icon-btn" data-act="editIdea" aria-label="Editar">✎</button>
@@ -365,9 +490,17 @@
         </div>`;
     }
 
+    if (s === "create") {
+      return `
+        <h3 class="serif">Crear</h3>
+        <div class="list-row" data-act="sheetNewStory"><span>📖 Nueva historia</span></div>
+        <div class="list-row" data-act="sheetNewIdea"><span>💡 Nueva nota</span></div>
+        <div class="btn-row"><button class="btn-ghost" data-act="closeSheet">Cerrar</button></div>`;
+    }
+
     if (s === "storyMenu") {
       return `
-        <h3 class="serif">Historia</h3>
+        <h3 class="serif">Esta historia</h3>
         <div class="list-row" data-act="editStory"><span>✎ Editar datos</span></div>
         <div class="list-row" data-act="exportStory"><span>📤 Exportar esta historia</span></div>
         <div class="list-row" data-act="importStory"><span>📥 Importar una historia</span></div>
@@ -383,8 +516,8 @@
     switch (state.screen) {
       case "welcome": return welcome();
       case "home": return homeScreen();
-      case "explore": return exploreScreen();
-      case "favorites": return favoritesScreen();
+      case "library": return libraryScreen();
+      case "search": return searchScreen();
       case "profile": return profileScreen();
       case "story": return storyScreen();
       case "idea": return ideaScreen();
@@ -397,8 +530,8 @@
     const tabbar = onTabs
       ? `<nav class="tabbar">
           ${TABBAR.map(([k, g, l]) => `
-            <button class="${state.screen === k ? "active" : ""}" data-act="go" data-screen="${k}">
-              <span class="glyph">${g}</span>${l}
+            <button class="${state.screen === k ? "active" : ""} ${k === "create" ? "create" : ""}" data-act="tab" data-screen="${k}">
+              <span class="glyph">${g}</span><span>${l}</span>
             </button>`).join("")}
         </nav>`
       : "";
@@ -409,20 +542,47 @@
       ${state.sheet
         ? `<div class="sheet-backdrop" data-act="backdrop"><div class="sheet">${sheetHTML()}</div></div>`
         : ""}`;
+
+    // Buscador en vivo: actualiza solo los resultados, para no perder el foco del teclado
+    if (state.screen === "search") {
+      const q = document.getElementById("q");
+      const r = document.getElementById("results");
+      if (q && r) {
+        q.addEventListener("input", (e) => {
+          state.query = e.target.value;
+          r.innerHTML = resultsHTML(state.query);
+        });
+      }
+    }
   }
 
   // ---------- Acciones ----------
   const actions = {
     start: () => go("home"),
-    go: (el) => go(el.dataset.screen),
-    search: () => toast("Búsqueda: próximamente"),
+    back: () => back(),
+    tab: (el) => {
+      if (el.dataset.screen === "create") return openSheet("create");
+      go(el.dataset.screen);
+    },
+    search: () => go("search"),
 
-    openStory: (el) => go("story", { storyId: el.dataset.id, storyTab: "Resumen" }),
-    openIdea: (el) => go("idea", { ideaId: el.dataset.id }),
+    openStory: (el) => go("story", { storyId: el.dataset.id, storyTab: "resumen" }, true),
+    openStoryTab: (el) => go("story", { storyId: el.dataset.id, storyTab: el.dataset.tab }, true),
+    openIdea: (el) => go("idea", { ideaId: el.dataset.id }, true),
     setTab: (el) => { state.storyTab = el.dataset.tab; render(); },
+
+    libTab: (el) => { state.libTab = el.dataset.tab; render(); },
+    toggleFav: () => { state.onlyFav = !state.onlyFav; render(); },
+
+    setTheme: (el) => {
+      try { localStorage.setItem(THEME_KEY, el.dataset.theme); } catch (e) {}
+      applyTheme(el.dataset.theme);
+      render();
+    },
 
     sheetNewStory: () => openSheet("newStory"),
     sheetNewIdea: () => openSheet("newIdea"),
+    noteForStory: () => openSheet("newIdea"),
     editStory: () => openSheet("editStory"),
     editIdea: () => openSheet("editIdea"),
     storyMenu: () => openSheet("storyMenu"),
@@ -455,9 +615,7 @@
         Object.assign(story(state.storyId), payload);
       } else {
         state.data.stories.unshift({
-          id: uid(), created: now(), favorite: false,
-          characters: [], plot: [], notes: [], scenes: [],
-          ...payload,
+          id: uid(), created: now(), favorite: false, sections: emptySections(), ...payload,
         });
       }
       save();
@@ -502,7 +660,7 @@
       state.data.stories = state.data.stories.filter((s) => s.id !== state.storyId);
       state.data.ideas.forEach((i) => { if (i.storyId === state.storyId) i.storyId = null; });
       save();
-      go("home");
+      go("library");
       toast("Historia eliminada");
     },
 
@@ -510,14 +668,14 @@
       const txt = document.getElementById("newItem").value.trim();
       if (!txt) return toast("Escribe algo primero");
       const s = story(state.storyId);
-      s[el.dataset.key] = [...(s[el.dataset.key] || []), txt];
+      s.sections[el.dataset.key] = [...(s.sections[el.dataset.key] || []), txt];
       s.updated = now();
       save(); render();
     },
 
     delItem: (el) => {
       const s = story(state.storyId);
-      s[el.dataset.key].splice(Number(el.dataset.idx), 1);
+      s.sections[el.dataset.key].splice(Number(el.dataset.idx), 1);
       s.updated = now();
       save(); render();
     },
@@ -527,7 +685,7 @@
       if (!s) return;
       const payload = {
         format: "ink-lore-story",
-        version: 1,
+        version: 2,
         story: s,
         notes: state.data.ideas.filter((i) => i.storyId === s.id),
       };
@@ -559,17 +717,13 @@
               throw new Error("formato");
             }
             const newId = uid();
-            state.data.stories.unshift({
-              ...data.story,
-              id: newId,
-              favorite: !!data.story.favorite,
-              updated: now(),
-            });
+            const st = migrate({ stories: [data.story], ideas: [] }).stories[0];
+            state.data.stories.unshift({ ...st, id: newId, updated: now() });
             (data.notes || []).forEach((n) => {
               state.data.ideas.unshift({ ...n, id: uid(), storyId: newId, updated: now() });
             });
             save();
-            go("story", { storyId: newId, storyTab: "Resumen" });
+            go("story", { storyId: newId, storyTab: "resumen" });
             toast("Historia importada");
           } catch (e) {
             toast("Ese archivo no es una historia de Ink Lore");
@@ -591,12 +745,13 @@
   // ---------- Eventos ----------
   app.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-act]");
-    if (!el || !app.contains(el)) return;
+    if (!el) return;
     const fn = actions[el.dataset.act];
     if (fn) fn(el, ev);
   });
 
-  // Arranque
+  // ---------- Arranque ----------
+  applyTheme(currentTheme());
   state.screen = state.data.stories.length || state.data.ideas.length ? "home" : "welcome";
   render();
 
