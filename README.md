@@ -1,80 +1,69 @@
-# ARKEION
+# Ink Lore
 
-> ARKEION no te dice qué aprender. Guarda lo que tú decides aprender.
+Ink Lore es una app web instalable (PWA) para escritores de fanfics, novelas y universos narrativos. Escribe capítulos, crea fichas de personajes, arma tu mundo, conecta elementos entre sí y guarda ideas sueltas, todo en un solo lugar.
 
-Archivo personal para aprender uno o varios idiomas. Cada idioma es su propio
-archivo con cinco secciones:
+Tus datos se quedan en tu dispositivo. No hay cuentas ni nube.
 
-| Sección | Qué guarda |
-|---|---|
-| 📖 Vocabulario | Mi diccionario: palabra, pronunciación, tipo, significado, ejemplo, traducción, relacionadas, asociación personal, notas y cómo la recuerdo (🌱 / 💡 / ✦) |
-| 📜 Gramática | Tema, explicación con mis palabras, regla, ejemplos, errores que debo evitar y práctica |
-| 💬 Frases y expresiones | Frase, significado, categoría (que tú creas), situación de uso y mi ejemplo |
-| 📝 Apuntes libres | Cualquier cosa: explicaciones de un video, notas de clase, reglas culturales |
-| 🌙 Bitácora | Diario opcional por fecha: qué aprendí, qué fue difícil, qué repasar, qué descubrí. Sin métricas |
+## Funciones
 
-Herramientas de estudio (fuera de cada idioma):
+- **Inicio:** historias recientes, favoritos, ideas rápidas y buscador.
+- **Historias:** tipo, fandom, género, estado (personalizable), etiquetas, sinopsis y objetivo de palabras con barra de progreso.
+- **Manuscrito:** capítulos con autoguardado, conteo de palabras, estado, notas privadas y reordenado.
+- **Fichas:** personajes, mundo, trama, cronología y recursos, con campos editables.
+- **Categorías propias:** crea las que necesite tu universo (criaturas, magia, facciones…).
+- **Relaciones:** vincula fichas entre sí y mira en qué capítulos aparece cada elemento.
+- **Bandeja de ideas:** captura ideas, asígnalas a una historia y conviértelas en capítulo.
+- **Búsqueda global** en historias, capítulos, fichas, notas e ideas.
+- **Exportación:** TXT, Word (.doc) e impresión a PDF.
+- **Ajustes:** tema claro, oscuro o automático; copias de seguridad en JSON.
 
-- **Repaso de vocabulario:** muestra una palabra, revelas el significado y marcas cómo la recuerdas.
-- **Búsqueda general:** busca en todos los idiomas y secciones.
-- **Actividades interactivas:** pendiente.
+## Uso
 
-Es una PWA estática: HTML, CSS y JavaScript sin dependencias ni servidor.
-Los datos se guardan en el navegador del dispositivo.
+### Probar en la computadora
 
-## Estructura de archivos
-
-```
-arkeion/
-├── index.html            # Estructura de la app
-├── styles.css            # Estética "The Ancient Library"
-├── app.js                # Idiomas, secciones, entradas, repaso y búsqueda
-├── sw.js                 # Service worker (uso sin conexión)
-├── manifest.webmanifest  # Instalación en el celular
-└── icon.svg              # Sello Α
-```
-
-## Ejecutar en local
+Abre `index.html` en el navegador. Para que la instalación y el modo sin conexión funcionen, sírvela desde un servidor local:
 
 ```bash
-cd arkeion
-python3 -m http.server 8080
+python3 -m http.server 8000
 ```
 
-Abre http://localhost:8080 en el navegador.
+Luego visita `http://localhost:8000`.
 
-## Publicar en GitHub Pages
+### Instalarla en el celular
 
-1. Crea un repositorio vacío en GitHub, por ejemplo `arkeion`.
-2. Desde esta carpeta:
+1. Publica la carpeta en un hosting con HTTPS (GitHub Pages, Netlify, Cloudflare Pages…).
+2. Abre el enlace en Chrome (Android) o Safari (iPhone).
+3. Elige **Añadir a la pantalla de inicio** o **Instalar app**.
 
-   ```bash
-   git init -b main
-   git add .
-   git commit -m "ARKEION: primera versión"
-   git remote add origin https://github.com/TU-USUARIO/arkeion.git
-   git push -u origin main
-   ```
-
-3. En el repositorio: **Settings → Pages → Deploy from a branch → `main` / `(root)`**.
-4. La app quedará en `https://TU-USUARIO.github.io/arkeion/`.
-5. En el celular, ábrela en el navegador y elige **Añadir a pantalla de inicio**.
+Después de la primera visita funciona sin conexión.
 
 ## Datos y copias de seguridad
 
-- Todo se guarda en `localStorage` del navegador, bajo la clave `arkeion.v2`.
-- La versión 2 usa una estructura nueva. Los datos de la versión 1 (`arkeion.v1`) no se migran.
-- Ajustes → **Exportar** descarga un `.json` con todo tu archivo.
-- Ajustes → **Importar** reemplaza el archivo actual por el de un `.json` exportado (solo versión 2).
-- Si borras los datos del navegador, pierdes el archivo: exporta de vez en cuando.
+Las historias se guardan en el almacenamiento del navegador de ese dispositivo. Si borras los datos del navegador o cambias de teléfono, se pierden.
 
-## Actualizar la app
+Exporta una copia desde **Ajustes → Exportar copia (.json)** y guárdala en tu nube o correo. Para restaurarla, usa **Ajustes → Importar copia**. Esto reemplaza los datos actuales.
 
-Cuando cambies archivos, sube el número de `CACHE` en `sw.js` (por ejemplo,
-`arkeion-v3`) para que los dispositivos reciban la nueva versión.
+## Estructura
 
-## Próximos pasos posibles
+```
+ink-lore/
+├── index.html            App completa (HTML, CSS y JavaScript en un solo archivo)
+├── manifest.webmanifest  Metadatos para instalarla como app
+├── sw.js                 Service worker: caché y modo sin conexión
+├── icon.svg              Icono vectorial
+├── icon-192.png          Icono para instalación
+├── icon-512.png          Icono para instalación
+└── README.md
+```
 
-- Actividades interactivas basadas en tus propios apuntes.
-- Editar o renombrar categorías de frases y moverlas entre ellas.
-- Etiquetas y filtros por entrada.
+## Limitaciones conocidas
+
+- Word se exporta como `.doc` (compatible con Word y Google Docs), no como `.docx` nativo.
+- No hay escenas ni arcos dentro de los capítulos todavía.
+- No hay portadas con imagen ni vista gráfica de relaciones o línea temporal.
+- La cronología no separa orden narrativo de orden cronológico.
+- Sin sincronización en la nube (prevista para una segunda etapa).
+
+## Tecnología
+
+HTML, CSS y JavaScript sin dependencias ni compilación.

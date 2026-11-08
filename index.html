@@ -1,19 +1,693 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#B9A7E0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Ink Lore">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <title>Ink Lore</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#faf7fc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ink Lore">
+<meta name="description" content="Ink Lore: espacio de trabajo para escritores de fanfics y universos narrativos.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Ink Lore</title>
+<style>
+:root{--bg:#faf7fc;--card:#ffffff;--ink:#3d3550;--muted:#8d85a0;--pri:#a993e0;--pri-soft:#efe8fb;--line:#ebe5f2;--danger:#d98c8c;--nav:rgba(255,255,255,.92)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1e1a29;--card:#2a2436;--ink:#ece7f5;--muted:#9d95b3;--pri:#8c77cc;--pri-soft:#342c46;--line:#3a3349;--danger:#b56b6b;--nav:rgba(38,32,50,.92)}}
+:root[data-theme=dark]{--bg:#1e1a29;--card:#2a2436;--ink:#ece7f5;--muted:#9d95b3;--pri:#8c77cc;--pri-soft:#342c46;--line:#3a3349;--danger:#b56b6b;--nav:rgba(38,32,50,.92)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+button{font:inherit}
+a{color:inherit}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.top h1{font-size:18px;margin:0;flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ind{font-size:12px;color:var(--muted);white-space:nowrap}
+.ib{background:none;border:0;font-size:28px;color:var(--ink);padding:0 6px;cursor:pointer;line-height:1}
+main{max-width:680px;margin:0 auto;padding:16px 16px 24px}
+h2{font-size:14px;margin:24px 0 10px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+small{color:var(--muted);font-size:12.5px}
+.muted{color:var(--muted);font-size:13px}
+.search{display:block;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:12px 16px;text-decoration:none;color:var(--muted)}
+.card{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px;text-decoration:none;margin-bottom:10px;align-items:center}
+.cover{width:56px;height:72px;border-radius:12px;display:grid;place-items:center;font-size:26px;flex:none}
+.cb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cb b{font-size:15px;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:6px 0 2px}
+.bar i{display:block;height:100%;background:var(--pri)}
+.btn{display:inline-block;background:var(--pri);color:#fff;border:0;border-radius:14px;padding:12px 18px;font-size:15px;cursor:pointer;text-decoration:none;text-align:center}
+.btn.ghost{background:var(--pri-soft);color:var(--ink)}
+.btn.danger{background:var(--danger)}
+input,textarea,select{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:6px}
+textarea{min-height:90px;resize:vertical}
+label{display:block;font-size:14px;color:var(--muted);margin-bottom:12px}
+.fld textarea{min-height:56px}
+.form{display:flex;flex-direction:column}
+.form .btn{align-self:flex-start;margin-top:4px}
+.form .row{justify-content:flex-start;gap:8px;flex-wrap:wrap}
+.manu{font-family:Georgia,"Iowan Old Style",serif;font-size:18px;line-height:1.7;min-height:60vh;background:var(--card)}
+.title-in{font-size:21px;font-weight:600;border:0;background:transparent;padding:6px 0;margin:0 0 4px;color:var(--ink)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0;flex-wrap:wrap}
+.row select{width:auto;margin:0}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:6px 0 12px}
+.tab{white-space:nowrap;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);text-decoration:none;font-size:14px}
+.tab.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.item{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.item a{flex:1;text-decoration:none;min-width:0}
+.item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .mv button{background:none;border:0;color:var(--muted);font-size:13px;padding:4px 6px;cursor:pointer}
+.hit{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;text-decoration:none}
+.hit b{display:block;margin:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--pri-soft);border-radius:999px;padding:5px 6px 5px 12px;font-size:13px;text-decoration:none}
+.chip button{background:none;border:0;cursor:pointer;color:var(--muted);font-size:16px;padding:0 4px}
+mark{background:#f5e27acc;color:inherit;border-radius:3px}
+.empty{color:var(--muted);text-align:center;padding:24px 14px;background:var(--card);border-radius:14px;border:1px dashed var(--line)}
+.idea{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.idea p{margin:0 0 6px;white-space:pre-wrap}
+.idea .acts{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.idea select{width:auto;margin:0;padding:7px 8px;font-size:14px}
+.quick{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}
+.quick textarea{min-height:64px;margin:0 0 8px}
+.quick select{margin:0 0 10px}
+.quick .btn{width:100%}
+.syn{white-space:pre-wrap;margin:8px 0}
+.pill{font-size:12px;background:var(--pri-soft);padding:3px 10px;border-radius:999px}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:14px 0}
+summary{cursor:pointer;color:var(--muted)}
+.section{margin-top:20px}
+.more{display:block;text-align:center;color:var(--muted);margin:12px 0;font-size:14px}
+.fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:30px;text-decoration:none;box-shadow:0 6px 18px #0003;z-index:4}
+.bn{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:var(--nav);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:6}
+.bn a{flex:1;text-align:center;text-decoration:none;display:flex;flex-direction:column;align-items:center;font-size:19px;opacity:.6}
+.bn a span{font-size:11px;color:var(--muted)}
+.bn a.on{opacity:1}
+.bn a.on span{color:var(--ink);font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:.25s;pointer-events:none;font-size:14px;z-index:9;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;left:0;top:0;width:100%;color:#000;background:#fff;font-family:Georgia,serif;font-size:12pt;line-height:1.6;padding:0 10px}
+  #printArea h2{color:#000;font-size:16pt;margin:0 0 12px;page-break-before:always}
+  #printArea h1{text-align:center}
+}
+</style>
 </head>
 <body>
-  <div id="app"></div>
-  <script src="app.js"></script>
+<header class="top">
+  <button class="ib" id="back" data-act="back" hidden aria-label="Volver">‹</button>
+  <h1 id="ttl">Ink Lore</h1>
+  <span class="ind" id="ind"></span>
+</header>
+<main id="view"></main>
+<nav class="bn" id="bn">
+  <a href="#/" data-n="">🏠<span>Inicio</span></a>
+  <a href="#/stories" data-n="stories">📚<span>Historias</span></a>
+  <a href="#/ideas" data-n="ideas">💡<span>Ideas</span></a>
+  <a href="#/search" data-n="search">🔍<span>Buscar</span></a>
+  <a href="#/settings" data-n="settings">⚙️<span>Ajustes</span></a>
+</nav>
+<div id="toast"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+<article id="printArea"></article>
+
+<script>
+const KEY = 'inklore.v1';
+const DEF_STATUS = ['Idea','Planificación','En escritura','En revisión','En pausa','Terminada','Archivada'];
+const TYPES = ['Novela','Fanfic','Relato','Guion','Otro'];
+const TYPE_EMOJI = {Novela:'📕',Fanfic:'🪄',Relato:'📝',Guion:'🎬',Otro:'📖'};
+const CH_STATUS = ['Borrador','En revisión','Listo'];
+const CHAR_FIELDS = ['Alias','Edad','Fecha de nacimiento','Pronombres','Especie o raza','Rol en la historia','Estado','Descripción física','Altura','Características distintivas','Vestimenta','Personalidad','Gustos','Miedos','Virtudes','Defectos','Motivaciones','Objetivos','Pasado','Secretos','Conflictos','Evolución del personaje'];
+const COLORS = ['#f6d7e3','#d7e8f8','#dcf2e6','#f7ecd0','#e6dcf7','#fbe1d6'];
+
+let db = null, saveTimer = null, searchQ = '';
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const words = t => (t || '').trim().split(/\s+/).filter(Boolean).length;
+const nf = n => Number(n || 0).toLocaleString('es');
+const hashStr = s => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
+const touch = s => { s.updated = Date.now(); };
+
+function flash(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(flash.t); flash.t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function ind(t){ const el = $('#ind'); if (el) el.textContent = t; }
+
+/* ---------- datos ---------- */
+function load(){
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch(e) {}
+  db = d && Array.isArray(d.stories) ? d : {stories: [], ideas: []};
+  db.ideas ||= [];
+  db.statuses ||= [...DEF_STATUS];
+  db.settings ||= {theme: 'auto'};
+}
+function persist(){
+  try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+  catch(e){ flash('⚠️ No se pudo guardar. Exporta una copia de seguridad.'); return false; }
+}
+function saveSoon(){
+  ind('Guardando…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveTimer = null; persist(); ind('Guardado ✓'); }, 400);
+}
+function flushSave(){
+  if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; persist(); }
+}
+function applyTheme(){
+  const t = db.settings?.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+function defaultCats(){
+  const c = (name, emoji, kind, fields) => ({id: uid(), name, emoji, kind, fields, entries: []});
+  return [
+    c('Manuscrito','✍️','chapters',[]),
+    c('Personajes','👤','entries',[...CHAR_FIELDS]),
+    c('Mundo','🌍','entries',['Tipo','Descripción']),
+    c('Trama','📖','entries',['Tipo','Descripción']),
+    c('Cronología','⏳','entries',['Fecha','Lugar','Personajes']),
+    c('Recursos','📎','entries',['Enlace','Descripción'])
+  ];
+}
+const findStory = id => db.stories.find(s => s.id === id);
+const chapters = s => s.cats.filter(c => c.kind === 'chapters').flatMap(c => c.entries);
+const storyWords = s => chapters(s).reduce((n, ch) => n + words(ch.text), 0);
+const chapCount = s => chapters(s).length;
+const allEntries = s => s.cats.flatMap(cat => cat.entries.map(obj => ({cat, obj})));
+const findEntry = (s, id) => allEntries(s).find(x => x.obj.id === id);
+function ensureManu(s){
+  let c = s.cats.find(x => x.kind === 'chapters');
+  if (!c){ c = {id: uid(), name: 'Manuscrito', emoji: '✍️', kind: 'chapters', fields: [], entries: []}; s.cats.unshift(c); }
+  return c;
+}
+const previewOf = en => (en.notes || Object.values(en.fields || {}).find(Boolean) || '').slice(0, 80);
+
+/* ---------- navegación ---------- */
+const go = h => { if (location.hash === h) render(); else location.hash = h; };
+
+function pickView(a, b, c, d, f){
+  if (!a) return viewHome();
+  if (a === 'stories') return viewStories();
+  if (a === 'ideas') return viewIdeas();
+  if (a === 'search') return viewSearch();
+  if (a === 'settings') return viewSettings();
+  if (a === 'new') return viewStoryForm(null);
+  const s = findStory(b);
+  if (a !== 's' || !s) return notFound();
+  if (!c) return viewStory(s, s.cats[0]?.id);
+  if (c === 'edit') return viewStoryForm(s);
+  if (c === 'newcat') return viewCatForm(s, null);
+  const cat = s.cats.find(x => x.id === d);
+  if (c === 'cat'){
+    if (!cat) return notFound();
+    return f === 'edit' ? viewCatForm(s, cat) : viewStory(s, cat.id);
+  }
+  if (c === 'e'){
+    const en = cat?.entries.find(x => x.id === f);
+    if (!en) return notFound();
+    return cat.kind === 'chapters' ? viewChapter(s, cat, en) : viewEntry(s, cat, en);
+  }
+  return notFound();
+}
+
+function render(){
+  flushSave();
+  const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+  const [a, b, c, d, f] = p;
+  let r;
+  try { r = pickView(a, b, c, d, f); }
+  catch (err) { console.error(err); r = {title: 'Ink Lore', html: '<p class="empty">Algo salió mal al mostrar esta pantalla.</p>'}; }
+  $('#view').innerHTML = r.html;
+  $('#ttl').textContent = r.title;
+  document.title = r.title + ' · Ink Lore';
+  const top = !a || ['stories','ideas','search','settings'].includes(a);
+  $('#back').hidden = top;
+  const navKey = !a ? '' : (a === 's' || a === 'new') ? 'stories' : a;
+  document.querySelectorAll('#bn a').forEach(x => x.classList.toggle('on', x.dataset.n === navKey));
+  r.after?.();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- vistas ---------- */
+function notFound(){ return {title: 'No encontrado', html: '<p class="empty">Esta página ya no existe.</p>'}; }
+
+function card(s){
+  const w = storyWords(s), pr = s.goal ? Math.min(100, Math.round(w / s.goal * 100)) : null;
+  return `<a class="card" href="#/s/${s.id}">
+    <div class="cover" style="background:${COLORS[hashStr(s.id) % COLORS.length]}">${TYPE_EMOJI[s.type] || '📖'}</div>
+    <div class="cb"><b>${s.fav ? '⭐ ' : ''}${esc(s.title)}</b>
+      <small>${esc(s.type)} · ${esc(s.status)}</small>
+      <small>${chapCount(s)} capítulos · ${nf(w)} palabras</small>
+      ${pr !== null ? `<div class="bar"><i style="width:${pr}%"></i></div>` : ''}
+    </div></a>`;
+}
+const cards = (list, empty) => list.length ? list.map(card).join('') : `<p class="empty">${empty}</p>`;
+
+function ideaForm(){
+  return `<form class="quick" data-form="idea">
+    <textarea name="text" required placeholder="Una frase, un diálogo, un título…"></textarea>
+    <select name="sid"><option value="">Sin historia</option>${db.stories.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('')}</select>
+    <button class="btn">Guardar idea</button></form>`;
+}
+function ideaRow(i){
+  const st = findStory(i.sid);
+  return `<div class="idea"><p>${esc(i.text)}</p>
+    <div class="acts">
+      <select data-chg="idea-set" data-id="${i.id}" aria-label="Asignar a historia">
+        <option value="">Sin historia</option>
+        ${db.stories.map(s => `<option value="${s.id}" ${s.id === i.sid ? 'selected' : ''}>${esc(s.title)}</option>`).join('')}
+      </select>
+      ${st ? `<button class="btn ghost" data-act="idea-chap" data-id="${i.id}">→ Capítulo</button>` : ''}
+      <button class="btn ghost" data-act="idea-del" data-id="${i.id}" aria-label="Eliminar idea">🗑</button>
+    </div></div>`;
+}
+
+function viewHome(){
+  const recent = [...db.stories].sort((x, y) => y.updated - x.updated).slice(0, 4);
+  const favs = db.stories.filter(s => s.fav);
+  return {title: 'Ink Lore', html: `
+    <a class="search" href="#/search">🔍 Buscar en tus historias…</a>
+    <h2>🕓 RECIENTES</h2>${cards(recent, 'Aún no tienes historias. Crea la primera con ＋ ✨')}
+    <h2>⭐ FAVORITOS</h2>${cards(favs, 'Marca una historia con ☆ para verla aquí.')}
+    <h2>✨ IDEAS RÁPIDAS</h2>${ideaForm()}
+    ${db.ideas.slice(0, 3).map(ideaRow).join('')}
+    ${db.ideas.length > 3 ? '<a class="more" href="#/ideas">Ver todas las ideas →</a>' : ''}
+    <a class="fab" href="#/new" aria-label="Nueva historia">＋</a>`};
+}
+
+function viewStories(){
+  const list = [...db.stories].sort((x, y) => y.updated - x.updated);
+  return {title: 'Mis historias', html: `
+    ${cards(list, 'Tu biblioteca está vacía. Toca ＋ para empezar.')}
+    <a class="fab" href="#/new" aria-label="Nueva historia">＋</a>`};
+}
+
+function viewIdeas(){
+  return {title: 'Bandeja de ideas', html: `${ideaForm()}
+    ${db.ideas.map(ideaRow).join('') || '<p class="empty">Aquí caen las ideas sueltas: frases, diálogos, títulos, personajes nuevos…</p>'}`};
+}
+
+function viewStoryForm(s){
+  const v = s || {title: '', type: 'Fanfic', fandom: '', genre: '', status: 'Idea', tags: '', goal: '', synopsis: ''};
+  const opts = db.statuses.includes(v.status) ? db.statuses : [...db.statuses, v.status];
+  const sel = (list, val) => list.map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('');
+  return {title: s ? 'Editar historia' : 'Nueva historia', html: `
+    <form class="form" data-form="story">
+      <input type="hidden" name="sid" value="${s ? s.id : ''}">
+      <label>Título *<input name="title" required value="${esc(v.title)}" placeholder="Ej. El último santuario"></label>
+      <label>Tipo<select name="type">${sel(TYPES, v.type)}</select></label>
+      <label>Fandom o universo<input name="fandom" value="${esc(v.fandom)}"></label>
+      <label>Género<input name="genre" value="${esc(v.genre)}"></label>
+      <label>Estado<select name="status">${sel(opts, v.status)}</select></label>
+      <label>Etiquetas (separadas por comas)<input name="tags" value="${esc(v.tags)}"></label>
+      <label>Objetivo de palabras (opcional)<input name="goal" type="number" min="0" value="${esc(v.goal)}"></label>
+      <label>Sinopsis<textarea name="synopsis">${esc(v.synopsis)}</textarea></label>
+      <button class="btn">Guardar</button>
+      ${s ? `<button type="button" class="btn danger" style="margin-top:14px" data-act="del-story" data-id="${s.id}">Eliminar historia</button>` : ''}
+    </form>`};
+}
+
+function viewStory(s, tabId){
+  const w = storyWords(s);
+  const cat = s.cats.find(x => x.id === tabId) || s.cats[0];
+  const pr = s.goal ? Math.min(100, Math.round(w / s.goal * 100)) : null;
+  const tabs = s.cats.map(c => `<a class="tab ${cat && c.id === cat.id ? 'on' : ''}" href="#/s/${s.id}/cat/${c.id}">${esc(c.emoji)} ${esc(c.name)}</a>`).join('')
+    + `<a class="tab" href="#/s/${s.id}/newcat">＋ Categoría</a>`;
+  let list = '';
+  if (cat){
+    list = cat.entries.map((en, i) => `
+      <div class="item">
+        <a href="#/s/${s.id}/e/${cat.id}/${en.id}"><b>${esc(en.name || 'Sin título')}</b>
+          <small>${cat.kind === 'chapters' ? `${esc(en.status)} · ${nf(words(en.text))} palabras` : esc(previewOf(en))}</small></a>
+        ${cat.kind === 'chapters' ? `<span class="mv">
+          <button data-act="move" data-s="${s.id}" data-c="${cat.id}" data-i="${i}" data-dir="-1" aria-label="Subir">▲</button>
+          <button data-act="move" data-s="${s.id}" data-c="${cat.id}" data-i="${i}" data-dir="1" aria-label="Bajar">▼</button></span>` : ''}
+      </div>`).join('') || '<p class="empty">Todavía no hay nada aquí.</p>';
+  }
+  return {title: s.title, html: `
+    <div class="row" style="margin-top:0"><small>${esc(s.type)}${s.fandom ? ' · ' + esc(s.fandom) : ''}${s.genre ? ' · ' + esc(s.genre) : ''}</small><span class="pill">${esc(s.status)}</span></div>
+    ${s.synopsis ? `<p class="syn">${esc(s.synopsis)}</p>` : ''}
+    <small>${nf(w)} palabras${s.goal ? ' de ' + nf(s.goal) : ''}</small>
+    ${pr !== null ? `<div class="bar"><i style="width:${pr}%"></i></div>` : ''}
+    <div class="row">
+      <a class="btn ghost" href="#/s/${s.id}/edit">✏️ Editar historia</a>
+      <button class="btn ghost" data-act="fav" data-id="${s.id}">${s.fav ? '⭐ Quitar de favoritos' : '☆ Favorito'}</button>
+    </div>
+    <div class="tabs">${tabs}</div>
+    ${cat ? `<div class="row" style="margin-top:4px">
+      <h2 style="margin:0">${esc(cat.emoji)} ${esc(cat.name).toUpperCase()}</h2>
+      <div style="display:flex;gap:8px">
+        <a class="btn ghost" href="#/s/${s.id}/cat/${cat.id}/edit" aria-label="Ajustes de categoría">⚙️</a>
+        <button class="btn" data-act="add" data-s="${s.id}" data-c="${cat.id}">＋ ${cat.kind === 'chapters' ? 'Capítulo' : 'Nuevo'}</button>
+      </div></div>` : ''}
+    ${list}
+    <details><summary>📤 Exportar historia</summary>
+      <div class="row" style="justify-content:flex-start;gap:8px">
+        <button class="btn ghost" data-act="exp-txt" data-id="${s.id}">TXT</button>
+        <button class="btn ghost" data-act="exp-doc" data-id="${s.id}">Word (.doc)</button>
+        <button class="btn ghost" data-act="exp-pdf" data-id="${s.id}">Imprimir / PDF</button>
+      </div>
+      <small>Word: se descarga como .doc, compatible con Word y Google Docs.</small>
+    </details>`};
+}
+
+function viewCatForm(s, cat){
+  const v = cat || {name: '', emoji: '🏷️', kind: 'entries', fields: []};
+  const isManu = cat?.kind === 'chapters';
+  return {title: cat ? 'Ajustes de categoría' : 'Nueva categoría', html: `
+    <form class="form" data-form="cat">
+      <input type="hidden" name="sid" value="${s.id}">
+      <input type="hidden" name="cid" value="${cat?.id || ''}">
+      <label>Icono<input name="emoji" maxlength="4" value="${esc(v.emoji)}"></label>
+      <label>Nombre *<input name="name" required value="${esc(v.name)}" placeholder="Criaturas, Magia, Facciones…"></label>
+      ${isManu ? '<p class="muted">El manuscrito guarda tus capítulos.</p>' : `
+        <label>Campos de la ficha (uno por línea)<textarea name="fields" rows="10">${esc(v.fields.join('\n'))}</textarea></label>
+        <small>Añade, quita o reordena campos. Quitar un campo no borra lo que ya escribiste en él.</small>`}
+      <button class="btn" style="margin-top:12px">Guardar</button>
+      ${cat ? `<button type="button" class="btn danger" style="margin-top:14px" data-act="del-cat" data-s="${s.id}" data-c="${cat.id}">Eliminar categoría</button>` : ''}
+    </form>`};
+}
+
+function viewChapter(s, cat, ch){
+  const text = ch.text || '';
+  const mentioned = allEntries(s).filter(x => x.cat.kind !== 'chapters' && x.obj.name && x.obj.name.length > 1
+    && text.toLowerCase().includes(x.obj.name.toLowerCase()));
+  return {title: ch.name || 'Capítulo', html: `
+    <input class="title-in" data-k="name" value="${esc(ch.name)}" placeholder="Título del capítulo">
+    <div class="row">
+      <select data-k="status" aria-label="Estado">${CH_STATUS.map(o => `<option ${o === ch.status ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <small id="wc">${nf(words(text))} palabras</small>
+    </div>
+    ${mentioned.length ? `<div class="chips"><small>En este capítulo:</small>${mentioned.map(x => `<a class="chip" href="#/s/${s.id}/e/${x.cat.id}/${x.obj.id}">${esc(x.cat.emoji)} ${esc(x.obj.name)}</a>`).join('')}</div>` : ''}
+    <textarea class="manu" data-k="text" placeholder="Escribe aquí…">${esc(text)}</textarea>
+    <details><summary>📌 Notas privadas</summary><textarea data-k="notes" placeholder="Solo tú verás esto">${esc(ch.notes)}</textarea></details>
+    <div class="row"><button class="btn danger" data-act="del-entry" data-s="${s.id}" data-c="${cat.id}" data-e="${ch.id}">Eliminar capítulo</button></div>`,
+    after: () => bindEditor(s, ch)};
+}
+
+function viewEntry(s, cat, en){
+  en.fields ||= {}; en.links ||= [];
+  const fields = cat.fields.map(f => `<label class="fld">${esc(f)}<textarea rows="2" data-f="${esc(f)}">${esc(en.fields[f] || '')}</textarea></label>`).join('');
+  const links = en.links.map(id => {
+    const x = findEntry(s, id);
+    return x ? `<span class="chip"><a href="#/s/${s.id}/e/${x.cat.id}/${x.obj.id}" style="text-decoration:none">${esc(x.cat.emoji)} ${esc(x.obj.name)}</a>
+      <button data-act="link-rm" data-s="${s.id}" data-e="${en.id}" data-t="${id}" aria-label="Quitar relación">×</button></span>` : '';
+  }).join('');
+  const opts = allEntries(s).filter(x => x.obj.id !== en.id && !en.links.includes(x.obj.id));
+  const addSel = opts.length ? `<select data-link-add aria-label="Añadir relación">
+    <option value="">＋ Vincular con…</option>
+    ${opts.map(x => `<option value="${x.obj.id}">${esc(x.cat.emoji)} ${esc(x.obj.name)}</option>`).join('')}</select>` : '';
+  const backLinks = allEntries(s).filter(x => x.obj.id !== en.id && (x.obj.links || []).includes(en.id));
+  const mentions = en.name && en.name.length > 1
+    ? allEntries(s).filter(x => x.cat.kind === 'chapters' && (x.obj.text || '').toLowerCase().includes(en.name.toLowerCase())) : [];
+  const appears = [...backLinks, ...mentions];
+  return {title: en.name || 'Sin nombre', html: `
+    <input class="title-in" data-k="name" value="${esc(en.name)}" placeholder="Nombre">
+    ${fields}
+    <label>Notas<textarea data-k="notes" rows="4">${esc(en.notes || '')}</textarea></label>
+    <div class="section"><h2>🔗 RELACIONES</h2>
+      <div class="chips">${links || '<small>Sin relaciones todavía.</small>'}</div>${addSel}
+    </div>
+    ${appears.length ? `<div class="section"><h2>📍 APARECE EN</h2><div class="chips">
+      ${appears.map(x => `<a class="chip" href="#/s/${s.id}/e/${x.cat.id}/${x.obj.id}" style="text-decoration:none">${esc(x.cat.emoji)} ${esc(x.obj.name)}</a>`).join('')}
+    </div></div>` : ''}
+    <div class="row" style="margin-top:24px"><button class="btn danger" data-act="del-entry" data-s="${s.id}" data-c="${cat.id}" data-e="${en.id}">Eliminar</button></div>`,
+    after: () => bindEditor(s, en)};
+}
+
+function viewSettings(){
+  const t = db.settings.theme || 'auto';
+  return {title: 'Ajustes', html: `
+    <h2>🎨 APARIENCIA</h2>
+    <label>Tema<select data-chg="theme">${[['auto','Automático'],['light','Claro'],['dark','Oscuro']]
+      .map(([v, l]) => `<option value="${v}" ${v === t ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <h2>🏷️ ESTADOS DE HISTORIA</h2>
+    <form class="form" data-form="statuses">
+      <textarea name="list" rows="7">${esc(db.statuses.join('\n'))}</textarea>
+      <button class="btn" style="margin-top:10px">Guardar estados</button>
+    </form>
+    <h2>💾 COPIAS DE SEGURIDAD</h2>
+    <p class="muted">Tus historias se guardan en este navegador. Exporta una copia de vez en cuando y guárdala en tu nube o correo para restaurarla en otro celular.</p>
+    <div class="row" style="justify-content:flex-start;gap:8px">
+      <button class="btn" data-act="backup">Exportar copia (.json)</button>
+      <button class="btn ghost" data-act="restore">Importar copia</button>
+    </div>
+    <h2>⚠️ ZONA PELIGROSA</h2>
+    <button class="btn danger" data-act="reset">Borrar todo</button>`};
+}
+
+function hl(text, q, pad = 40){
+  text = String(text || '');
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return esc(text);
+  const a = Math.max(0, i - pad), b = Math.min(text.length, i + q.length + pad * 1.5);
+  return (a ? '…' : '') + esc(text.slice(a, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length, b)) + (b < text.length ? '…' : '');
+}
+function searchResults(){
+  const q = searchQ.trim().toLowerCase();
+  if (!q) return '<p class="empty">Busca por nombre, texto, etiqueta o idea.</p>';
+  const out = [];
+  db.stories.forEach(s => {
+    if ([s.title, s.synopsis, s.fandom, s.tags, s.genre].join(' ').toLowerCase().includes(q))
+      out.push(`<a class="hit" href="#/s/${s.id}"><small>📚 Historia</small><b>${hl(s.title, q, 60)}</b></a>`);
+    allEntries(s).forEach(({cat, obj}) => {
+      const hay = cat.kind === 'chapters' ? (obj.text || '') : Object.values(obj.fields || {}).join(' ') + ' ' + (obj.notes || '');
+      const inName = (obj.name || '').toLowerCase().includes(q);
+      const idx = hay.toLowerCase().indexOf(q);
+      if (inName || idx >= 0)
+        out.push(`<a class="hit" href="#/s/${s.id}/e/${cat.id}/${obj.id}"><small>${esc(s.title)} · ${esc(cat.emoji)} ${esc(cat.name)}</small>
+          <b>${hl(obj.name, q, 60)}</b>${idx >= 0 ? `<small>${hl(hay, q)}</small>` : ''}</a>`);
+    });
+  });
+  db.ideas.forEach(i => {
+    if (i.text.toLowerCase().includes(q)) out.push(`<a class="hit" href="#/ideas"><small>💡 Idea</small><small>${hl(i.text, q)}</small></a>`);
+  });
+  return out.length ? out.slice(0, 60).join('') : `<p class="empty">Sin resultados para “${esc(searchQ)}”.</p>`;
+}
+function viewSearch(){
+  return {title: 'Buscar', html: `
+    <input type="search" id="q" placeholder="Personajes, capítulos, ideas…" value="${esc(searchQ)}">
+    <div id="sres" style="margin-top:14px">${searchResults()}</div>`,
+    after: () => $('#q').addEventListener('input', e => { searchQ = e.target.value; $('#sres').innerHTML = searchResults(); })};
+}
+
+/* ---------- edición automática ---------- */
+function bindEditor(s, obj){
+  const upd = () => { touch(s); obj.updated = Date.now(); saveSoon(); };
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const h = () => {
+      obj[el.dataset.k] = el.value;
+      if (el.dataset.k === 'text' && $('#wc')) $('#wc').textContent = nf(words(el.value)) + ' palabras';
+      upd();
+    };
+    el.addEventListener('input', h); el.addEventListener('change', h);
+  });
+  document.querySelectorAll('[data-f]').forEach(el => el.addEventListener('input', () => {
+    obj.fields[el.dataset.f] = el.value; upd();
+  }));
+  const la = document.querySelector('[data-link-add]');
+  if (la) la.addEventListener('change', () => {
+    if (!la.value) return;
+    obj.links = [...(obj.links || []), la.value];
+    touch(s); persist(); render();
+  });
+}
+
+/* ---------- acciones ---------- */
+const ACT = {
+  back(){ if (history.length > 1) history.back(); else go('#/'); },
+  fav({id}){ const s = findStory(id); s.fav = !s.fav; touch(s); persist(); render(); },
+  'del-story'({id}){
+    if (!confirm('¿Eliminar esta historia y todo su contenido?')) return;
+    db.stories = db.stories.filter(x => x.id !== id); persist(); go('#/stories');
+  },
+  add({s, c}){
+    const st = findStory(s), cat = st.cats.find(x => x.id === c), id = uid();
+    const en = cat.kind === 'chapters'
+      ? {id, name: 'Capítulo ' + (cat.entries.length + 1), status: 'Borrador', text: '', notes: '', updated: Date.now()}
+      : {id, name: 'Nuevo', fields: {}, notes: '', links: [], updated: Date.now()};
+    cat.entries.push(en); touch(st); persist();
+    go(`#/s/${s}/e/${c}/${id}`);
+  },
+  move({s, c, i, dir}){
+    const st = findStory(s), cat = st.cats.find(x => x.id === c);
+    const a = +i, j = a + (+dir);
+    if (j < 0 || j >= cat.entries.length) return;
+    [cat.entries[a], cat.entries[j]] = [cat.entries[j], cat.entries[a]];
+    touch(st); persist(); render();
+  },
+  'del-entry'({s, c, e}){
+    if (!confirm('¿Eliminar? Esta acción no se puede deshacer.')) return;
+    const st = findStory(s), cat = st.cats.find(x => x.id === c);
+    cat.entries = cat.entries.filter(x => x.id !== e);
+    allEntries(st).forEach(x => { if (x.obj.links) x.obj.links = x.obj.links.filter(id => id !== e); });
+    touch(st); persist(); go(`#/s/${s}/cat/${c}`);
+  },
+  'del-cat'({s, c}){
+    if (!confirm('¿Eliminar esta categoría y todo lo que contiene?')) return;
+    const st = findStory(s);
+    st.cats = st.cats.filter(x => x.id !== c); touch(st); persist(); go(`#/s/${s}`);
+  },
+  'link-rm'({s, e, t}){
+    const x = findEntry(findStory(s), e);
+    if (x) x.obj.links = x.obj.links.filter(id => id !== t);
+    persist(); render();
+  },
+  'idea-del'({id}){ db.ideas = db.ideas.filter(i => i.id !== id); persist(); render(); },
+  'idea-chap'({id}){
+    const i = db.ideas.find(x => x.id === id), st = findStory(i?.sid);
+    if (!st){ flash('Asigna la idea a una historia primero'); return; }
+    const cat = ensureManu(st);
+    const ch = {id: uid(), name: (i.text.split('\n')[0] || 'Capítulo nuevo').slice(0, 40), status: 'Borrador', text: '', notes: i.text, updated: Date.now()};
+    cat.entries.push(ch);
+    db.ideas = db.ideas.filter(x => x.id !== id);
+    touch(st); persist();
+    go(`#/s/${st.id}/e/${cat.id}/${ch.id}`);
+  },
+  'exp-txt'({id}){
+    const s = findStory(id);
+    download(safeName(s) + '.txt', new Blob([storyPlain(s)], {type: 'text/plain;charset=utf-8'}));
+  },
+  'exp-doc'({id}){
+    const s = findStory(id);
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><title>${esc(s.title)}</title></head>
+      <body style="font-family:Georgia,serif;font-size:12pt;line-height:1.6">${storyHtml(s)}</body></html>`;
+    download(safeName(s) + '.doc', new Blob(['﻿', html], {type: 'application/msword'}));
+  },
+  'exp-pdf'({id}){
+    const s = findStory(id);
+    $('#printArea').innerHTML = `<h1>${esc(s.title)}</h1>` + storyHtml(s).replace(/^<h1>.*?<\/h1>/, '');
+    setTimeout(() => window.print(), 50);
+  },
+  backup(){
+    download(`inklore-copia-${new Date().toISOString().slice(0, 10)}.json`, new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'}));
+    flash('Copia exportada');
+  },
+  restore(){ $('#importFile').click(); },
+  reset(){
+    if (!confirm('¿Borrar TODAS las historias e ideas? No se puede deshacer.')) return;
+    if (!confirm('Última confirmación: ¿seguro?')) return;
+    db = {stories: [], ideas: [], statuses: [...DEF_STATUS], settings: db.settings};
+    persist(); render();
+  }
+};
+
+const CHG = {
+  theme(v){ db.settings.theme = v; persist(); applyTheme(); },
+  'idea-set'(v, el){ const i = db.ideas.find(x => x.id === el.dataset.id); if (i){ i.sid = v; persist(); render(); } }
+};
+
+const FORMS = {
+  story(f){
+    const d = Object.fromEntries(new FormData(f));
+    const title = d.title.trim(); if (!title) return;
+    const fields = {
+      title, type: d.type, fandom: d.fandom.trim(), genre: d.genre.trim(), status: d.status,
+      tags: d.tags.trim(), goal: Number(d.goal) || 0, synopsis: d.synopsis.trim()
+    };
+    if (d.sid){
+      const s = findStory(d.sid); Object.assign(s, fields); touch(s); persist(); go('#/s/' + s.id);
+    } else {
+      const s = {id: uid(), ...fields, fav: false, created: Date.now(), updated: Date.now(), cats: defaultCats()};
+      db.stories.push(s); persist(); go('#/s/' + s.id);
+    }
+  },
+  cat(f){
+    const d = Object.fromEntries(new FormData(f));
+    const st = findStory(d.sid); if (!st) return;
+    const name = d.name.trim(); if (!name) return;
+    const emoji = (d.emoji || '').trim() || '🏷️';
+    const fields = [...new Set((d.fields || '').split('\n').map(x => x.trim()).filter(Boolean))];
+    const cat = st.cats.find(x => x.id === d.cid);
+    if (cat){
+      cat.name = name; cat.emoji = emoji;
+      if (cat.kind !== 'chapters') cat.fields = fields;
+      touch(st); persist(); go(`#/s/${st.id}/cat/${cat.id}`);
+    } else {
+      const nc = {id: uid(), name, emoji, kind: 'entries', fields, entries: []};
+      st.cats.push(nc); touch(st); persist(); go(`#/s/${st.id}/cat/${nc.id}`);
+    }
+  },
+  idea(f){
+    const d = Object.fromEntries(new FormData(f));
+    const text = d.text.trim(); if (!text) return;
+    db.ideas.unshift({id: uid(), text, sid: d.sid || '', created: Date.now()});
+    persist(); flash('Idea guardada ✨'); render();
+  },
+  statuses(f){
+    const list = [...new Set(String(new FormData(f).get('list') || '').split('\n').map(x => x.trim()).filter(Boolean))];
+    if (!list.length) return;
+    db.statuses = list; persist(); flash('Estados guardados'); render();
+  }
+};
+
+/* ---------- exportación ---------- */
+const safeName = s => (s.title.replace(/[^\p{L}\p{N} _-]/gu, '').trim().replace(/\s+/g, '_')) || 'historia';
+function download(name, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function storyPlain(s){
+  let o = s.title + '\n' + (s.fandom ? s.fandom + '\n' : '') + '\n';
+  for (const ch of chapters(s)) o += ch.name + '\n\n' + (ch.text || '').trim() + '\n\n\n';
+  return o;
+}
+function storyHtml(s){
+  let o = `<h1>${esc(s.title)}</h1>` + (s.fandom ? `<p><i>${esc(s.fandom)}</i></p>` : '');
+  for (const ch of chapters(s)){
+    o += `<h2>${esc(ch.name)}</h2>` + (ch.text || '').split(/\n+/).filter(x => x.trim()).map(p => `<p>${esc(p)}</p>`).join('')
+      + '<div style="page-break-after:always"></div>';
+  }
+  return o;
+}
+
+/* ---------- eventos globales ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const fn = ACT[t.dataset.act];
+  if (fn){ e.preventDefault(); fn(t.dataset); }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.chg && CHG[el.dataset.chg]) CHG[el.dataset.chg](el.value, el);
+});
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (!f.dataset.form) return;
+  e.preventDefault();
+  FORMS[f.dataset.form]?.(f);
+});
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const obj = JSON.parse(await file.text());
+    if (!Array.isArray(obj.stories)) throw new Error('formato');
+    if (!confirm('Esto reemplazará los datos actuales por la copia. ¿Continuar?')) return;
+    db = obj; db.ideas ||= []; db.statuses ||= [...DEF_STATUS]; db.settings ||= {theme: 'auto'};
+    persist(); applyTheme(); flash('Copia restaurada ✨'); render();
+  } catch (err) { flash('Ese archivo no es una copia válida de Ink Lore'); }
+});
+window.addEventListener('hashchange', render);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+load();
+applyTheme();
+render();
+</script>
 </body>
 </html>

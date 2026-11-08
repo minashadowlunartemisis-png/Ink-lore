@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="110" fill="#B9A7E0"/>
-  <text x="256" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="150" fill="#2B2540">Ink</text>
-  <text x="256" y="400" text-anchor="middle" font-family="Georgia, serif" font-size="110" fill="#FFFFFF">Lore</text>
+  <rect width="512" height="512" rx="112" fill="#a993e0"/>
+  <path d="M96 170c60-30 124-30 160 6 36-36 100-36 160-6v210c-60-30-124-30-160 6-36-36-100-36-160-6z" fill="#faf7fc"/>
+  <path d="M256 176v210" stroke="#a993e0" stroke-width="10" stroke-linecap="round"/>
+  <path d="M130 230h90M130 270h90M292 230h90M292 270h90" stroke="#c9b9ef" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="392" cy="112" r="22" fill="#f2dcea"/>
 </svg>
