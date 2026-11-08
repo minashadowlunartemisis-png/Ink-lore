@@ -1,0 +1,19 @@
+{
+  "name": "ARKEION",
+  "short_name": "ARKEION",
+  "description": "Tu archivo personal para guardar y organizar apuntes de idiomas",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e0b08",
+  "theme_color": "#0e0b08",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
