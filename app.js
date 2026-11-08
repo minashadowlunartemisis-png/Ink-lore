@@ -1,719 +1,763 @@
-"use strict";
+(() => {
+  const STORE_KEY = "inkLore.v1";
+  const THEME_KEY = "inkLore.theme";
 
-/* ==========================================================================
-   ARKEION — archivo personal de idiomas
-   Cada idioma tiene cinco secciones: Vocabulario, Gramática, Frases y
-   expresiones, Apuntes libres y Bitácora. Todo se guarda en localStorage.
-   ========================================================================== */
+  // Secciones de cada historia, según el documento del proyecto
+  const SECTIONS = [
+    { key: "manuscrito", label: "Manuscrito", item: "Escena", ph: "Escribe una escena o capítulo" },
+    { key: "personajes", label: "Personajes", item: "Personaje", ph: "Nombre y descripción del personaje" },
+    { key: "universo", label: "Universo", item: "Elemento", ph: "Mundo, culturas, magia o sistemas" },
+    { key: "cronologia", label: "Cronología", item: "Evento", ph: "Qué pasa y cuándo" },
+    { key: "lugares", label: "Lugares", item: "Lugar", ph: "Nombre y descripción del lugar" },
+    { key: "objetos", label: "Objetos", item: "Objeto", ph: "Artefactos y recursos" },
+    { key: "lore", label: "Lore", item: "Secreto", ph: "Historia y secretos del universo" },
+    { key: "archivo", label: "Archivo", item: "Referencia", ph: "Escenas descartadas, referencias, notas" },
+  ];
+  const TABS = [{ key: "resumen", label: "Resumen" }, ...SECTIONS];
 
-const KEY = "arkeion.v2";
+  // Paleta del documento: lavanda, rosa, verde salvia y marfil
+  const COVERS = ["#E9DDF4", "#F6E3EA", "#E3EEE9", "#F3E6CF", "#DCE6F5", "#EDE3D9"];
+  const NOTES = ["#F6E3EA", "#FFF1C9", "#E3EEE9", "#E9DDF4", "#DDEFFB"];
 
-const SECTIONS = {
-  vocab:   { name: "Vocabulario",         sub: "Mi diccionario personal",             add: "+ Nueva palabra" },
-  grammar: { name: "Gramática",           sub: "Reglas con mis propias palabras",     add: "+ Nuevo tema" },
-  phrases: { name: "Frases y expresiones", sub: "Organizadas por significado y uso",  add: "+ Nueva frase" },
-  notes:   { name: "Apuntes libres",      sub: "Lo que no encaja en otro lugar",      add: "+ Nuevo apunte" },
-  journal: { name: "Bitácora",            sub: "Mi diario de aprendizaje, sin métricas", add: "+ Nueva entrada" },
-};
-const SECTION_ORDER = ["vocab", "grammar", "phrases", "notes", "journal"];
+  const TABBAR = [
+    ["home", "⌂", "Inicio"],
+    ["library", "▤", "Biblioteca"],
+    ["create", "+", "Crear"],
+    ["search", "⌕", "Buscar"],
+    ["profile", "☺", "Perfil"],
+  ];
+  const TAB_SCREENS = ["home", "library", "search", "profile"];
 
-const POS = ["", "Sustantivo", "Verbo", "Adjetivo", "Adverbio", "Expresión", "Otro"];
+  const emptySections = () => Object.fromEntries(SECTIONS.map((s) => [s.key, []]));
+  const emptyData = () => ({ version: 2, stories: [], ideas: [] });
 
-const STATUS = {
-  learning: "🌱 La estoy aprendiendo",
-  help: "💡 La recuerdo con ayuda",
-  solo: "✦ La recuerdo sin ayuda",
-};
-
-/* Campos de cada tipo de apunte. Son la fuente de verdad para editor,
-   lectura, búsqueda e importación. */
-const FIELDS = {
-  vocab: [
-    { key: "word", label: "Palabra", required: true, placeholder: "p. ej. 食べる" },
-    { key: "pronunciation", label: "Pronunciación", placeholder: "p. ej. taberu" },
-    { key: "pos", label: "Tipo de palabra", type: "select", options: POS, optionLabels: { "": "—" } },
-    { key: "meaning", label: "Significado", type: "textarea", rows: 2 },
-    { key: "example", label: "Oración de ejemplo", type: "textarea", rows: 2 },
-    { key: "exampleTr", label: "Traducción del ejemplo", type: "textarea", rows: 2 },
-    { key: "related", label: "Palabras relacionadas", placeholder: "separadas por comas" },
-    { key: "association", label: "Dibujo, imagen o asociación personal", type: "textarea", rows: 2 },
-    { key: "personal", label: "Notas personales", type: "textarea", rows: 2 },
-    { key: "status", label: "Cómo la recuerdo", type: "select", options: Object.keys(STATUS), optionLabels: STATUS },
-  ],
-  grammar: [
-    { key: "title", label: "Tema", required: true, placeholder: "p. ej. Pasado simple" },
-    { key: "explanation", label: "Explicación con mis palabras", type: "textarea", rows: 3 },
-    { key: "rule", label: "Regla o estructura", type: "textarea", rows: 2 },
-    { key: "examples", label: "Ejemplos", type: "textarea", rows: 3 },
-    { key: "mistakes", label: "Errores que debo evitar", type: "textarea", rows: 2 },
-    { key: "practice", label: "Ejercicio o nota de práctica", type: "textarea", rows: 2 },
-  ],
-  phrases: [
-    { key: "phrase", label: "Frase", required: true, placeholder: "p. ej. Good morning" },
-    { key: "meaning", label: "Significado o traducción", type: "textarea", rows: 2 },
-    { key: "category", label: "Categoría", type: "category" },
-    { key: "situation", label: "Situación en la que se usa", type: "textarea", rows: 2 },
-    { key: "example", label: "Mi ejemplo", type: "textarea", rows: 2 },
-  ],
-  notes: [
-    { key: "title", label: "Título", required: true },
-    { key: "content", label: "Contenido", type: "textarea", rows: 5 },
-    { key: "personal", label: "Notas personales", type: "textarea", rows: 3 },
-  ],
-  journal: [
-    { key: "date", label: "Fecha", type: "date", required: true },
-    { key: "learned", label: "¿Qué aprendí hoy?", type: "textarea", rows: 2 },
-    { key: "difficult", label: "¿Qué encontré difícil?", type: "textarea", rows: 2 },
-    { key: "review", label: "¿Qué quiero repasar?", type: "textarea", rows: 2 },
-    { key: "discovered", label: "¿Qué descubrí?", type: "textarea", rows: 2 },
-  ],
-};
-
-const TITLE_KEY = { vocab: "word", grammar: "title", phrases: "phrase", notes: "title", journal: "date" };
-const SUB_KEY = { vocab: "meaning", grammar: "explanation", phrases: "meaning", notes: "content", journal: "learned" };
-
-/* ---------- Utilidades ---------- */
-
-const $ = (sel) => document.querySelector(sel);
-const app = $("#app");
-
-const esc = (s) =>
-  String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  }[c]));
-
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const now = () => new Date().toISOString();
-const today = () => {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-};
-const fmtDate = (iso) =>
-  new Date(iso).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
-const fmtDay = (ymd) =>
-  ymd
-    ? new Date(ymd + "T12:00:00").toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : "Sin fecha";
-const sigil = (name) => (name.trim()[0] || "·").toUpperCase();
-const preview = (s) => String(s || "").replace(/\s+/g, " ").trim().slice(0, 90);
-const itemTitle = (item) => (item.kind === "journal" ? fmtDay(item.date) : item[TITLE_KEY[item.kind]] || "Sin título");
-const itemMatches = (item, term) =>
-  FIELDS[item.kind].some((f) => String(item[f.key] ?? "").toLowerCase().includes(term));
-const block = (title, text) =>
-  text && String(text).trim()
-    ? `<section class="block"><h3>${esc(title)}</h3><div class="text">${esc(text)}</div></section>`
-    : "";
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+  // Convierte datos de versiones anteriores al formato nuevo
+  function migrate(d) {
+    d.stories = (d.stories || []).map((s) => {
+      if (!s.sections) {
+        s.sections = emptySections();
+        s.sections.manuscrito = s.scenes || [];
+        s.sections.personajes = s.characters || [];
+        s.sections.cronologia = s.plot || [];
+        s.sections.archivo = s.notes || [];
+        delete s.scenes; delete s.characters; delete s.plot; delete s.notes;
+      } else {
+        SECTIONS.forEach((x) => { s.sections[x.key] = s.sections[x.key] || []; });
+      }
+      s.tags = s.tags || [];
+      s.favorite = !!s.favorite;
+      return s;
+    });
+    d.ideas = (d.ideas || []).map((i) => ({ ...i, tags: i.tags || [], favorite: !!i.favorite }));
+    return d;
   }
-  return arr;
-}
 
-let toastTimer;
-function toast(msg) {
-  let el = $("#toast");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "toast";
-    el.className = "toast";
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
-}
-
-/* ---------- Almacenamiento ---------- */
-
-function load() {
-  try {
-    const data = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (data && data.version === 2 && Array.isArray(data.languages)) return data;
-  } catch (_) { /* datos dañados: empezamos de cero */ }
-  return { version: 2, languages: [] };
-}
-
-let db = load();
-
-function save() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(db));
-  } catch (_) {
-    toast("No se pudo guardar. Revisa el espacio disponible del navegador.");
-  }
-}
-
-const getLang = (id) => db.languages.find((l) => l.id === id);
-
-function findItem(id) {
-  for (const lang of db.languages) {
-    const item = lang.items.find((i) => i.id === id);
-    if (item) return { lang, item };
-  }
-  return null;
-}
-
-function sortedItems(lang, kind) {
-  const list = lang.items.filter((i) => i.kind === kind);
-  if (kind === "journal") return list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  if (kind === "vocab") return list.sort((a, b) => (a.word || "").localeCompare(b.word || "", "es"));
-  return list.sort((a, b) => (b.updated || "").localeCompare(a.updated || ""));
-}
-
-/* ---------- Navegación ---------- */
-
-function route() {
-  const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
-  const [head, a, b, c] = parts;
-
-  if (!head) return viewArchive();
-  if (head === "ajustes") return viewSettings();
-  if (head === "herramientas") return a === "repaso" ? viewReview(b) : viewTools();
-  if (head === "lang" && a && b) return viewSection(a, b);
-  if (head === "lang" && a) return viewLanguage(a);
-  if (head === "item" && a === "nuevo") return viewEditor(null, b, c);
-  if (head === "item" && a && b === "editar") return viewEditor(a);
-  if (head === "item" && a) return viewItem(a);
-  notFound();
-}
-
-function setTop(title, backHref) {
-  const back = $("#back");
-  back.classList.toggle("hidden", !backHref);
-  back.onclick = () => { location.hash = backHref; };
-  document.title = title === "Archivo" ? "ARKEION" : `${title} · ARKEION`;
-}
-
-function notFound() {
-  setTop("No encontrado", "#/");
-  app.innerHTML = `
-    <p class="empty">Esta página no existe en tu archivo.</p>
-    <a class="btn" href="#/">Volver al archivo</a>`;
-}
-
-/* ---------- Componentes ---------- */
-
-function itemRow(item, prefix = "") {
-  const badge = item.kind === "vocab" && item.status
-    ? `<span class="badge">${esc(STATUS[item.status] || "")}</span>`
-    : "";
-  const sub = item[SUB_KEY[item.kind]] || (item.kind === "vocab" ? item.pronunciation : "") || "";
-  return `
-    <a class="row note-row" href="#/item/${esc(item.id)}">
-      <span class="item-head">
-        <span class="note-title">${esc(itemTitle(item))}</span>${badge}
-      </span>
-      <span class="note-preview">${esc(prefix + preview(sub))}</span>
-    </a>`;
-}
-
-const listOf = (items, emptyMsg) =>
-  items.length ? `<div class="list">${items.map((i) => itemRow(i)).join("")}</div>` : `<p class="empty">${esc(emptyMsg)}</p>`;
-
-/* ---------- Vistas ---------- */
-
-function viewArchive() {
-  setTop("Archivo");
-  const langs = db.languages;
-
-  app.innerHTML = `
-    <section class="intro">
-      <p class="kicker">Biblioteca personal</p>
-      <h1>Archivo</h1>
-      <p class="motto">ARKEION no te dice qué aprender. Guarda lo que tú decides aprender.</p>
-    </section>
-
-    ${langs.length
-      ? `<div class="grid">${langs
-          .map((l) => `
-            <a class="card" href="#/lang/${esc(l.id)}">
-              <span class="sigil">${esc(sigil(l.name))}</span>
-              <span class="card-title">${esc(l.name)}</span>
-              <span class="card-meta">${l.items.length} ${l.items.length === 1 ? "entrada" : "entradas"}</span>
-            </a>`)
-          .join("")}</div>`
-      : `<p class="empty">Tu archivo está vacío. Añade el primer idioma para comenzar.</p>`}
-
-    <div class="list">
-      <a class="row" href="#/herramientas"><span>✦ Herramientas de estudio</span><span class="count">›</span></a>
-    </div>
-
-    <form id="addLang" class="panel">
-      <label class="field">Nuevo idioma
-        <input name="name" required maxlength="40" autocomplete="off"
-               placeholder="p. ej. Japonés, Coreano, Inglés">
-      </label>
-      <button class="btn primary" type="submit">+ Añadir idioma</button>
-    </form>`;
-
-  $("#addLang").onsubmit = (e) => {
-    e.preventDefault();
-    const name = String(new FormData(e.target).get("name")).trim();
-    if (!name) return;
-    if (db.languages.some((l) => l.name.toLowerCase() === name.toLowerCase())) {
-      toast("Ese idioma ya está en tu archivo");
-      return;
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      return migrate(raw ? JSON.parse(raw) : emptyData());
+    } catch (e) {
+      return emptyData();
     }
-    const lang = { id: uid(), name, created: now(), phraseCategories: ["General"], items: [] };
-    db.languages.push(lang);
-    save();
-    location.hash = `#/lang/${lang.id}`;
-  };
-}
-
-function viewLanguage(lid) {
-  const lang = getLang(lid);
-  if (!lang) return notFound();
-  setTop(lang.name, "#/");
-
-  const total = lang.items.length;
-  app.innerHTML = `
-    <section class="intro">
-      <p class="kicker">Idioma</p>
-      <h1>${esc(lang.name)}</h1>
-      <p class="motto">${total} ${total === 1 ? "entrada guardada" : "entradas guardadas"}</p>
-    </section>
-
-    <input class="search" id="q" type="search" autocomplete="off" placeholder="Buscar en ${esc(lang.name)}…">
-    <div id="results"></div>
-
-    <div id="sections" class="stack">
-      <h2 class="section-title">Secciones</h2>
-      <div class="list">
-        ${SECTION_ORDER.map((k) => `
-          <a class="row" href="#/lang/${esc(lang.id)}/${k}">
-            <span>${SECTIONS[k].name}</span>
-            <span class="count">${lang.items.filter((i) => i.kind === k).length}</span>
-          </a>`).join("")}
-      </div>
-    </div>
-
-    <button class="btn danger wide" id="delLang" type="button">Eliminar idioma</button>`;
-
-  $("#q").oninput = (e) => {
-    const term = e.target.value.trim().toLowerCase();
-    $("#sections").classList.toggle("hidden", !!term);
-    $("#results").innerHTML = term
-      ? lang.items.filter((i) => itemMatches(i, term)).map((i) => itemRow(i, `${SECTIONS[i.kind].name} · `)).join("") ||
-        `<p class="empty">Sin coincidencias</p>`
-      : "";
-    if (term) $("#results").innerHTML = `<div class="list">${$("#results").innerHTML}</div>`;
-  };
-
-  $("#delLang").onclick = () => {
-    if (!confirm(`¿Eliminar "${lang.name}" y todas sus entradas? No se puede deshacer.`)) return;
-    db.languages = db.languages.filter((l) => l.id !== lang.id);
-    save();
-    location.hash = "#/";
-  };
-}
-
-function viewSection(lid, kind) {
-  const lang = getLang(lid);
-  if (!lang || !SECTIONS[kind]) return notFound();
-  setTop(SECTIONS[kind].name, `#/lang/${lang.id}`);
-
-  const items = sortedItems(lang, kind);
-  let body;
-
-  if (kind === "phrases") {
-    const cats = [...new Set([...lang.phraseCategories, ...items.map((i) => i.category || "General")])];
-    body = cats
-      .map((cat) => {
-        const group = items.filter((i) => (i.category || "General") === cat);
-        return group.length
-          ? `<h2 class="section-title">${esc(cat)}</h2><div class="list">${group.map((i) => itemRow(i)).join("")}</div>`
-          : "";
-      })
-      .join("") || `<p class="empty">Aún no hay frases guardadas.</p>`;
-  } else {
-    body = listOf(items, `Aún no hay nada en ${SECTIONS[kind].name.toLowerCase()}.`);
   }
 
-  app.innerHTML = `
-    <section class="intro">
-      <p class="kicker">${esc(lang.name)}</p>
-      <h1>${SECTIONS[kind].name}</h1>
-      <p class="motto">${SECTIONS[kind].sub}</p>
-    </section>
+  const state = {
+    data: load(),
+    screen: "welcome",
+    storyId: null,
+    ideaId: null,
+    storyTab: "resumen",
+    sheet: null,
+    libTab: "historias",
+    onlyFav: false,
+    query: "",
+    hist: [],
+  };
 
-    <a class="btn primary wide" href="#/item/nuevo/${esc(lang.id)}/${kind}">${SECTIONS[kind].add}</a>
+  const app = document.getElementById("app");
 
-    ${body}`;
-}
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state.data));
+    } catch (e) {
+      toast("No se pudo guardar. Revisa el espacio del celular.");
+    }
+  }
 
-function viewItem(iid) {
-  const found = findItem(iid);
-  if (!found) return notFound();
-  const { lang, item } = found;
-  const title = itemTitle(item);
-  setTop(title, `#/lang/${lang.id}/${item.kind}`);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const now = () => new Date().toISOString();
 
-  const skip = item.kind === "vocab" ? ["pronunciation", "status"] : [];
-  const body = FIELDS[item.kind]
-    .filter((f) => f.key !== TITLE_KEY[item.kind] && !skip.includes(f.key))
-    .map((f) => {
-      let val = item[f.key];
-      if (f.optionLabels && f.optionLabels[val]) val = f.optionLabels[val];
-      return block(f.label, val);
-    })
-    .join("");
+  const esc = (s) =>
+    String(s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  app.innerHTML = `
-    <article class="page">
-      <div>
-        <p class="kicker">${esc(lang.name)} · ${SECTIONS[item.kind].name}</p>
-        <h1>${esc(title)}</h1>
-        ${item.kind === "vocab" && item.pronunciation ? `<p class="pron">${esc(item.pronunciation)}</p>` : ""}
-      </div>
-      ${item.kind === "vocab" && item.status ? `<p class="badge">${esc(STATUS[item.status])}</p>` : ""}
-      ${body}
-      <p class="stamp">Creado el ${fmtDate(item.created)} · Modificado el ${fmtDate(item.updated)}</p>
-    </article>
+  const hash = (str) => {
+    let h = 0;
+    for (const c of String(str)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h;
+  };
+  const coverColor = (id) => COVERS[hash(id) % COVERS.length];
+  const noteColor = (id) => NOTES[hash(id) % NOTES.length];
+  const noteTilt = (id) => ((hash(id) % 5) - 2) * 0.7;
 
-    <div class="actions">
-      <a class="btn primary" href="#/item/${esc(item.id)}/editar">Editar</a>
-      <button class="btn danger" id="delItem" type="button">Eliminar</button>
+  const byRecent = (a, b) => (b.updated || "").localeCompare(a.updated || "");
+  const story = (id) => state.data.stories.find((s) => s.id === id);
+  const idea = (id) => state.data.ideas.find((i) => i.id === id);
+  const parseTags = (v) => v.split(",").map((x) => x.trim()).filter(Boolean);
+  const snippet = (t) => (t.length > 70 ? t.slice(0, 70) + "…" : t);
+
+  function toast(msg) {
+    const old = document.querySelector(".toast");
+    if (old) old.remove();
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2200);
+  }
+
+  function ago(iso) {
+    if (!iso) return "";
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (d <= 0) return "Actualizado hoy";
+    if (d === 1) return "Actualizado hace 1 día";
+    if (d < 7) return `Actualizado hace ${d} días`;
+    const w = Math.floor(d / 7);
+    return w === 1 ? "Actualizado hace 1 semana" : `Actualizado hace ${w} semanas`;
+  }
+
+  function dateLabel(iso) {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function currentTheme() {
+    try { return localStorage.getItem(THEME_KEY) || "auto"; } catch (e) { return "auto"; }
+  }
+  function applyTheme(t) {
+    if (t === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+  }
+
+  // Navegación: las pantallas de detalle se apilan para que "←" regrese donde estabas
+  function go(screen, extra = {}, stack = false) {
+    if (stack) {
+      state.hist.push({ screen: state.screen, storyId: state.storyId, ideaId: state.ideaId, storyTab: state.storyTab });
+    } else {
+      state.hist = [];
+    }
+    Object.assign(state, { screen, sheet: null }, extra);
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function back() {
+    const p = state.hist.pop() || { screen: "home" };
+    Object.assign(state, {
+      screen: p.screen,
+      storyId: p.storyId ?? null,
+      ideaId: p.ideaId ?? null,
+      storyTab: p.storyTab || "resumen",
+      sheet: null,
+    });
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function openSheet(name) {
+    state.sheet = name;
+    render();
+  }
+
+  // ---------- Componentes ----------
+  const coverHTML = (s) => `
+    <div class="cover" style="background:${coverColor(s.id)}" data-act="openStory" data-id="${s.id}">
+      ${s.favorite ? '<span class="cover-star">★</span>' : ""}
+      <div class="cover-title serif">${esc(s.title)}</div>
+      <div class="cover-author">${esc(s.author || "")}</div>
     </div>`;
 
-  $("#delItem").onclick = () => {
-    if (!confirm("¿Eliminar este apunte? No se puede deshacer.")) return;
-    lang.items = lang.items.filter((i) => i.id !== item.id);
-    save();
-    location.hash = `#/lang/${lang.id}/${item.kind}`;
-  };
-}
+  const addCoverHTML = `
+    <div class="cover add" data-act="sheetNewStory">
+      <span>+</span><small>Nueva historia</small>
+    </div>`;
 
-function viewEditor(iid, lid, kind) {
-  let lang, item, back;
+  const noteHTML = (i) => `
+    <div class="note" style="background:${noteColor(i.id)};transform:rotate(${noteTilt(i.id)}deg)" data-act="openIdea" data-id="${i.id}">
+      <div class="note-title">${esc(i.title)}</div>
+      <div class="note-body">${esc((i.description || i.notes || "").slice(0, 80))}</div>
+    </div>`;
 
-  if (iid) {
-    const found = findItem(iid);
-    if (!found) return notFound();
-    ({ lang, item } = found);
-    kind = item.kind;
-    back = `#/item/${item.id}`;
-  } else {
-    lang = getLang(lid);
-    if (!lang || !SECTIONS[kind]) return notFound();
-    item = {};
-    back = `#/lang/${lang.id}/${kind}`;
+  const addNoteHTML = `
+    <div class="note add" data-act="sheetNewIdea">
+      <span>+</span><small>Nueva nota</small>
+    </div>`;
+
+  const btnRow = (saveAct) => `
+    <div class="btn-row">
+      <button class="btn-ghost" data-act="closeSheet">Cancelar</button>
+      <button class="btn-primary" data-act="${saveAct}">Guardar</button>
+    </div>`;
+
+  // ---------- Pantallas ----------
+  function welcome() {
+    return `
+      <section class="welcome">
+        <div class="logo serif">Ink<br><span>Lore</span></div>
+        <p class="tagline">Tu libreta de ideas<br>para fanfics</p>
+        <button class="btn-primary big" data-act="start">Comenzar</button>
+        <button class="link-btn" data-act="start">Ya tengo cuenta</button>
+      </section>`;
   }
 
-  const title = iid ? `Editar · ${SECTIONS[kind].name}` : SECTIONS[kind].add.replace("+ ", "");
-  setTop(title, back);
-
-  const fieldsHtml = FIELDS[kind]
-    .map((f) => {
-      let val = item[f.key];
-      if (val === undefined) {
-        if (f.key === "status") val = "learning";
-        else if (f.key === "category") val = "General";
-        else if (f.key === "date") val = today();
-        else val = "";
-      }
-      const label = `<span>${esc(f.label)}</span>`;
-      const req = f.required ? "required" : "";
-      const ph = f.placeholder ? `placeholder="${esc(f.placeholder)}"` : "";
-
-      if (f.type === "textarea") {
-        return `<label class="field">${label}
-          <textarea name="${f.key}" rows="${f.rows || 3}" ${ph}>${esc(val)}</textarea></label>`;
-      }
-      if (f.type === "select") {
-        return `<label class="field">${label}
-          <select name="${f.key}">
-            ${f.options
-              .map((o) => {
-                const text = f.optionLabels && f.optionLabels[o] !== undefined ? f.optionLabels[o] : o;
-                return `<option value="${esc(o)}" ${o === val ? "selected" : ""}>${esc(text)}</option>`;
-              })
-              .join("")}
-          </select></label>`;
-      }
-      if (f.type === "category") {
-        return `<label class="field">${label}
-          <input name="category" value="${esc(val)}" list="catList" maxlength="40" autocomplete="off">
-          <datalist id="catList">${lang.phraseCategories.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
-        </label>`;
-      }
-      const type = f.type === "date" ? "date" : "text";
-      return `<label class="field">${label}
-        <input name="${f.key}" type="${type}" value="${esc(val)}" maxlength="200" ${req} ${ph}></label>`;
-    })
-    .join("");
-
-  app.innerHTML = `
-    <form id="itemForm" class="editor">
-      <p class="kicker">${esc(lang.name)} · ${SECTIONS[kind].name}</p>
-      ${fieldsHtml}
-      <div class="actions">
-        <button class="btn primary" type="submit">Guardar</button>
-        <a class="btn" href="${back}">Cancelar</a>
-      </div>
-    </form>`;
-
-  $("#itemForm").onsubmit = (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const data = {};
-    for (const f of FIELDS[kind]) data[f.key] = String(fd.get(f.key) ?? "").trim();
-
-    const missing = FIELDS[kind].find((f) => f.required && !data[f.key]);
-    if (missing) {
-      toast(`Falta: ${missing.label}`);
-      return;
-    }
-
-    if (kind === "phrases") {
-      data.category = data.category || "General";
-      if (!lang.phraseCategories.includes(data.category)) lang.phraseCategories.push(data.category);
-    }
-
-    const t = now();
-    let target;
-    if (iid) {
-      Object.assign(item, data, { updated: t });
-      target = item;
-    } else {
-      target = { id: uid(), kind, languageId: lang.id, ...data, created: t, updated: t };
-      lang.items.push(target);
-    }
-    save();
-    location.hash = `#/item/${target.id}`;
-  };
-}
-
-/* ---------- Herramientas ---------- */
-
-function viewTools() {
-  setTop("Herramientas", "#/");
-  const vocabCount = (l) => l.items.filter((i) => i.kind === "vocab").length;
-
-  app.innerHTML = `
-    <section class="intro">
-      <p class="kicker">Estudio</p>
-      <h1>Herramientas</h1>
-      <p class="motto">Herramientas para volver a lo que guardaste.</p>
-    </section>
-
-    <section class="stack">
-      <h2 class="section-title">Repaso de vocabulario</h2>
-      <div class="list">
-        <a class="row" href="#/herramientas/repaso/all"><span>Todos los idiomas</span><span class="count">›</span></a>
-        ${db.languages
-          .map((l) => `<a class="row" href="#/herramientas/repaso/${esc(l.id)}">
-              <span>${esc(l.name)}</span><span class="count">${vocabCount(l)}</span></a>`)
-          .join("")}
-      </div>
-    </section>
-
-    <section class="stack">
-      <h2 class="section-title">Búsqueda general</h2>
-      <input class="search" id="gq" type="search" autocomplete="off" placeholder="Buscar en todos tus idiomas…">
-      <div id="gresults"></div>
-    </section>
-
-    <section class="stack">
-      <h2 class="section-title">Próximamente</h2>
-      <div class="list">
-        <div class="row"><span>Actividades interactivas</span><span class="count">pronto</span></div>
-      </div>
-    </section>`;
-
-  $("#gq").oninput = (e) => {
-    const term = e.target.value.trim().toLowerCase();
-    if (!term) {
-      $("#gresults").innerHTML = "";
-      return;
-    }
-    const hits = [];
-    for (const lang of db.languages) {
-      for (const item of lang.items) {
-        if (itemMatches(item, term)) hits.push(itemRow(item, `${lang.name} · ${SECTIONS[item.kind].name} · `));
-      }
-    }
-    $("#gresults").innerHTML = hits.length
-      ? `<div class="list">${hits.join("")}</div>`
-      : `<p class="empty">Sin coincidencias</p>`;
-  };
-}
-
-function viewReview(lid) {
-  const langs = lid === "all" ? db.languages : [getLang(lid)].filter(Boolean);
-  if (!langs.length) return notFound();
-  setTop("Repaso de vocabulario", "#/herramientas");
-
-  const pool = shuffle(
-    langs.flatMap((l) => l.items.filter((i) => i.kind === "vocab").map((item) => ({ lang: l, item })))
-  );
-
-  if (!pool.length) {
-    setTop("Repaso de vocabulario", "#/herramientas");
-    app.innerHTML = `
-      <section class="intro"><p class="kicker">Herramientas</p><h1>Repaso</h1></section>
-      <p class="empty">Aún no hay palabras en tu diccionario.</p>`;
-    return;
+  function homeScreen() {
+    const stories = [...state.data.stories].sort(byRecent);
+    const ideas = [...state.data.ideas].sort(byRecent);
+    return `
+      <header class="topbar">
+        <div>
+          <h1 class="screen-title serif">¡Hola, escritora!</h1>
+          <p class="subtitle">¿Qué historia vamos a crear hoy?</p>
+        </div>
+      </header>
+      <div class="section-head"><span>Mis historias</span></div>
+      <div class="covers">${stories.map(coverHTML).join("")}${addCoverHTML}</div>
+      <div class="section-head"><span>Notas rápidas</span></div>
+      <div class="notes">${ideas.map(noteHTML).join("")}${addNoteHTML}</div>`;
   }
 
-  let index = 0;
-  let revealed = false;
+  function libraryScreen() {
+    const isStories = state.libTab === "historias";
+    const stories = state.data.stories.filter((s) => !state.onlyFav || s.favorite).sort(byRecent);
+    const notes = state.data.ideas.filter((i) => !state.onlyFav || i.favorite).sort(byRecent);
 
-  const next = () => {
-    index = (index + 1) % pool.length;
-    revealed = false;
-    draw();
-  };
-
-  const draw = () => {
-    const { lang, item } = pool[index];
-
-    app.innerHTML = `
-      <section class="intro">
-        <p class="kicker">${esc(lang.name)} · Repaso</p>
-        <h1>${esc(item.word)}</h1>
-        ${item.pronunciation ? `<p class="pron">${esc(item.pronunciation)}</p>` : ""}
-      </section>
-
-      ${revealed
-        ? `<section class="stack">
-             ${block("Significado", item.meaning)}
-             ${block("Ejemplo", item.example)}
-             ${block("Traducción del ejemplo", item.exampleTr)}
-             ${block("Asociación personal", item.association)}
-           </section>
-           <h2 class="section-title">¿Cómo la recuerdas?</h2>
-           <div class="review-actions">
-             ${Object.entries(STATUS)
-               .map(([k, label]) => `<button class="btn ${k === item.status ? "primary" : ""}" data-status="${k}" type="button">${label}</button>`)
-               .join("")}
-           </div>
-           <button class="btn wide" id="skip" type="button">Siguiente</button>`
-        : `<button class="btn primary wide" id="reveal" type="button">Mostrar significado</button>`}`;
-
-    if (!revealed) {
-      $("#reveal").onclick = () => {
-        revealed = true;
-        draw();
-      };
+    let body;
+    if (isStories) {
+      if (!stories.length && state.onlyFav) body = `<p class="empty">No tienes historias favoritas.</p>`;
+      else body = `<div class="covers">${stories.map(coverHTML).join("")}${state.onlyFav ? "" : addCoverHTML}</div>`;
+      if (!state.data.stories.length) {
+        body += `<p class="empty">Aún no tienes historias.</p>
+                 <div class="btn-row"><button class="btn-ghost" data-act="importStory">📥 Importar una historia</button></div>`;
+      }
     } else {
-      app.querySelectorAll("[data-status]").forEach((btn) => {
-        btn.onclick = () => {
-          item.status = btn.dataset.status;
-          item.updated = now();
-          save();
-          next();
-        };
+      if (!notes.length && state.onlyFav) body = `<p class="empty">No tienes notas favoritas.</p>`;
+      else body = `<div class="notes">${notes.map(noteHTML).join("")}${state.onlyFav ? "" : addNoteHTML}</div>`;
+    }
+
+    return `
+      <header class="topbar">
+        <div>
+          <h1 class="screen-title serif">Biblioteca</h1>
+          <p class="subtitle">Todas tus historias y notas</p>
+        </div>
+      </header>
+      <div class="segment">
+        <button class="${isStories ? "on" : ""}" data-act="libTab" data-tab="historias">Historias</button>
+        <button class="${!isStories ? "on" : ""}" data-act="libTab" data-tab="notas">Notas</button>
+      </div>
+      <div class="chips">
+        <button class="chip ${state.onlyFav ? "on" : ""}" data-act="toggleFav">★ Solo favoritas</button>
+      </div>
+      ${body}`;
+  }
+
+  function searchScreen() {
+    return `
+      <header class="topbar">
+        <div>
+          <h1 class="screen-title serif">Buscar</h1>
+          <p class="subtitle">Personajes, lugares, notas y más</p>
+        </div>
+      </header>
+      <input id="q" type="search" placeholder="Escribe para buscar…" value="${esc(state.query)}">
+      <div id="results" class="results">${resultsHTML(state.query)}</div>`;
+  }
+
+  function resultsHTML(q) {
+    const t = q.trim().toLowerCase();
+    if (!t) return `<p class="empty">Busca en tus historias, secciones y notas.</p>`;
+    const hit = (...vals) => vals.some((v) => String(v ?? "").toLowerCase().includes(t));
+    const rows = [];
+
+    state.data.stories.forEach((s) => {
+      if (hit(s.title, s.author, s.synopsis, ...(s.tags || []))) {
+        rows.push(`
+          <div class="list-row" data-act="openStory" data-id="${s.id}">
+            <span><b>${esc(s.title)}</b><br><small class="muted">Historia · ${esc(s.author || "")}</small></span>
+            <span class="count">›</span>
+          </div>`);
+      }
+      SECTIONS.forEach((sec) => {
+        (s.sections[sec.key] || []).forEach((txt) => {
+          if (!hit(txt)) return;
+          rows.push(`
+            <div class="list-row" data-act="openStoryTab" data-id="${s.id}" data-tab="${sec.key}">
+              <span><b>${esc(snippet(txt))}</b><br><small class="muted">${sec.label} · ${esc(s.title)}</small></span>
+              <span class="count">›</span>
+            </div>`);
+        });
       });
-      $("#skip").onclick = next;
-    }
-  };
+    });
 
-  draw();
-}
+    state.data.ideas.forEach((i) => {
+      if (hit(i.title, i.description, i.notes, ...(i.tags || []))) {
+        rows.push(`
+          <div class="list-row" data-act="openIdea" data-id="${i.id}">
+            <span><b>${esc(i.title)}</b><br><small class="muted">Nota</small></span>
+            <span class="count">›</span>
+          </div>`);
+      }
+    });
 
-/* ---------- Ajustes ---------- */
-
-function viewSettings() {
-  setTop("Ajustes", "#/");
-  const totalItems = db.languages.reduce((sum, l) => sum + l.items.length, 0);
-
-  app.innerHTML = `
-    <section class="intro">
-      <p class="kicker">Configuración</p>
-      <h1>Ajustes</h1>
-      <p class="motto">Tu archivo vive solo en este dispositivo. Exporta una copia de seguridad de vez en cuando.</p>
-    </section>
-
-    <div class="list">
-      <div class="row"><span>Idiomas</span><span class="count">${db.languages.length}</span></div>
-      <div class="row"><span>Entradas</span><span class="count">${totalItems}</span></div>
-    </div>
-
-    <section class="stack">
-      <h2 class="section-title">Copia de seguridad</h2>
-      <button class="btn primary wide" id="export" type="button">Exportar archivo (.json)</button>
-      <label class="btn wide file-btn">Importar archivo (.json)
-        <input id="import" type="file" accept="application/json,.json">
-      </label>
-      <p class="hint">Importar reemplaza el contenido actual del archivo.</p>
-    </section>
-
-    <section class="stack">
-      <h2 class="section-title">Zona peligrosa</h2>
-      <button class="btn danger wide" id="wipe" type="button">Borrar todo el archivo</button>
-    </section>`;
-
-  $("#export").onclick = exportData;
-  $("#import").onchange = importData;
-  $("#wipe").onclick = () => {
-    if (!confirm("¿Borrar TODO el archivo? Esta acción no se puede deshacer.")) return;
-    db = { version: 2, languages: [] };
-    save();
-    location.hash = "#/";
-  };
-}
-
-function exportData() {
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `arkeion-${today()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function sanitizeLanguage(l) {
-  const items = (Array.isArray(l.items) ? l.items : [])
-    .filter((i) => i && i.id && Object.hasOwn(FIELDS, i.kind))
-    .map((i) => ({ ...i, languageId: String(l.id) }));
-  const cats = Array.isArray(l.phraseCategories) && l.phraseCategories.length
-    ? l.phraseCategories.map(String)
-    : ["General"];
-  return {
-    id: String(l.id ?? uid()),
-    name: String(l.name ?? "Sin nombre"),
-    created: l.created ?? now(),
-    phraseCategories: [...new Set(cats)],
-    items,
-  };
-}
-
-async function importData(e) {
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file) return;
-  try {
-    const data = JSON.parse(await file.text());
-    if (!data || !Array.isArray(data.languages)) throw new Error("formato inválido");
-    if (data.version !== 2) {
-      toast("Este archivo es de una versión anterior de ARKEION");
-      return;
-    }
-    const languages = data.languages.map(sanitizeLanguage);
-    const count = languages.reduce((sum, l) => sum + l.items.length, 0);
-    if (!confirm(`Se reemplazará tu archivo actual por ${languages.length} idioma(s) y ${count} entrada(s). ¿Continuar?`)) return;
-    db = { version: 2, languages };
-    save();
-    toast("Archivo importado");
-    route();
-  } catch (_) {
-    toast("No se pudo importar: el archivo no es válido");
+    return rows.length
+      ? rows.slice(0, 50).join("")
+      : `<p class="empty">Sin resultados para "${esc(q)}".</p>`;
   }
-}
 
-/* ---------- Arranque ---------- */
+  function profileScreen() {
+    const theme = currentTheme();
+    const opts = [["auto", "Automático"], ["light", "Claro"], ["dark", "Oscuro"]];
+    return `
+      <header class="topbar">
+        <div>
+          <h1 class="screen-title serif">Perfil</h1>
+          <p class="subtitle">Tus datos se guardan en este celular</p>
+        </div>
+      </header>
+      <div class="panel">
+        <h4>Apariencia</h4>
+        <div class="segment">
+          ${opts.map(([k, l]) => `<button class="${theme === k ? "on" : ""}" data-act="setTheme" data-theme="${k}">${l}</button>`).join("")}
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Respaldos</h4>
+        <p>Cada historia tiene su respaldo. Ábrela, toca ⋮ y elige Exportar. Para recuperarla en otro celular, usa Importar en esa misma opción.</p>
+      </div>
+      <div class="panel">
+        <h4>Resumen</h4>
+        <p>${state.data.stories.length} historias · ${state.data.ideas.length} notas</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn-danger" data-act="wipe">Borrar todo</button>
+      </div>`;
+  }
 
-window.addEventListener("hashchange", route);
-route();
+  function listEditor(s, sec, items) {
+    return `
+      ${items.map((it, idx) => `
+        <div class="panel">
+          <div class="panel-head">
+            <h4>${sec.item} ${idx + 1}</h4>
+            <button class="link-btn" data-act="delItem" data-key="${sec.key}" data-idx="${idx}">Eliminar</button>
+          </div>
+          <p>${esc(it)}</p>
+        </div>`).join("")}
+      <div class="panel">
+        <textarea id="newItem" placeholder="${sec.ph}"></textarea>
+        <div class="btn-row">
+          <button class="btn-primary" data-act="addItem" data-key="${sec.key}">Agregar</button>
+        </div>
+      </div>`;
+  }
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
-}
+  function storyScreen() {
+    const s = story(state.storyId);
+    if (!s) return `<p class="empty">Esta historia ya no existe.</p>`;
+    const t = state.storyTab;
+    const related = state.data.ideas.filter((i) => i.storyId === s.id);
+
+    let body;
+    if (t === "resumen") {
+      body = `
+        <div class="panel"><h4>Sinopsis</h4><p>${esc(s.synopsis) || "Escribe una sinopsis con el botón ✎."}</p></div>
+        ${SECTIONS.map((sec) => `
+          <div class="list-row" data-act="setTab" data-tab="${sec.key}">
+            <span>${sec.label}</span>
+            <span class="count">${(s.sections[sec.key] || []).length} ›</span>
+          </div>`).join("")}
+        <div class="list-row add-row" data-act="noteForStory"><span>＋ Nueva nota para esta historia</span></div>
+        ${related.length ? `
+          <div class="section-head"><span>Notas relacionadas</span></div>
+          <div class="notes">${related.map(noteHTML).join("")}</div>` : ""}`;
+    } else {
+      const sec = SECTIONS.find((x) => x.key === t) || SECTIONS[0];
+      const items = s.sections[sec.key] || [];
+      const words = sec.key === "manuscrito"
+        ? items.join(" ").split(/\s+/).filter(Boolean).length
+        : null;
+      body = (words !== null ? `<p class="counter">${words} palabras</p>` : "") + listEditor(s, sec, items);
+    }
+
+    return `
+      <header class="topbar">
+        <button class="icon-btn" data-act="back" aria-label="Volver">←</button>
+        <div class="actions">
+          <button class="icon-btn" data-act="favStory" aria-label="Favorito">${s.favorite ? "★" : "☆"}</button>
+          <button class="icon-btn" data-act="editStory" aria-label="Editar">✎</button>
+          <button class="icon-btn" data-act="storyMenu" aria-label="Más">⋮</button>
+        </div>
+      </header>
+      <div class="hero">
+        <div class="hero-cover" style="background:${coverColor(s.id)}">
+          <div class="cover-title serif">${esc(s.title)}</div>
+        </div>
+        <div class="author">${esc(s.author || "Sin autor")}</div>
+      </div>
+      <div class="chips">${(s.tags || []).map((g) => `<span class="chip">${esc(g)}</span>`).join("")}</div>
+      <div class="tabs">
+        ${TABS.map((x) => `<button class="${x.key === t ? "active" : ""}" data-act="setTab" data-tab="${x.key}">${x.label}</button>`).join("")}
+      </div>
+      ${body}`;
+  }
+
+  function ideaScreen() {
+    const i = idea(state.ideaId);
+    if (!i) return `<p class="empty">Esta nota ya no existe.</p>`;
+    const linked = i.storyId && story(i.storyId);
+    return `
+      <header class="topbar">
+        <button class="icon-btn" data-act="back" aria-label="Volver">←</button>
+        <div class="actions">
+          <button class="icon-btn" data-act="favIdea" aria-label="Favorito">${i.favorite ? "★" : "☆"}</button>
+          <button class="icon-btn" data-act="editIdea" aria-label="Editar">✎</button>
+        </div>
+      </header>
+      <div class="note big" style="background:${noteColor(i.id)}">
+        <div class="note-title serif">${esc(i.title)}</div>
+        <div class="chips">${(i.tags || []).map((g) => `<span class="chip">${esc(g)}</span>`).join("")}</div>
+      </div>
+      <div class="panel"><h4>Descripción</h4><p>${esc(i.description) || "Sin descripción."}</p></div>
+      <div class="panel"><h4>Notas</h4><p>${esc(i.notes) || "Sin notas."}</p></div>
+      ${linked ? `
+        <div class="panel">
+          <h4>Relacionada con</h4>
+          <div class="list-row" data-act="openStory" data-id="${linked.id}" style="margin:0">
+            <span>${esc(linked.title)}</span><span class="count">›</span>
+          </div>
+        </div>` : ""}
+      <p class="subtitle small">Creada el ${dateLabel(i.created)} · ${ago(i.updated)}</p>
+      <div class="btn-row">
+        <button class="btn-danger" data-act="delIdea">Eliminar nota</button>
+      </div>`;
+  }
+
+  // ---------- Hojas ----------
+  function sheetHTML() {
+    const s = state.sheet;
+
+    if (s === "newStory" || s === "editStory") {
+      const st = s === "editStory" ? story(state.storyId) || {} : {};
+      return `
+        <h3 class="serif">${s === "newStory" ? "Nueva historia" : "Editar historia"}</h3>
+        <div class="form">
+          <label>Título<input id="f_title" value="${esc(st.title)}" placeholder="El legado de las estrellas"></label>
+          <label>Fandom / autor original<input id="f_author" value="${esc(st.author)}" placeholder="Harry Potter"></label>
+          <label>Sinopsis<textarea id="f_synopsis" placeholder="Una nueva generación descubre...">${esc(st.synopsis)}</textarea></label>
+          <label>Etiquetas (separadas por coma)<input id="f_tags" value="${esc((st.tags || []).join(", "))}" placeholder="Aventura, Misterio"></label>
+          ${btnRow("saveStory")}
+        </div>`;
+    }
+
+    if (s === "newIdea" || s === "editIdea") {
+      const i = s === "editIdea" ? idea(state.ideaId) || {} : {};
+      const preset = state.screen === "story" ? state.storyId : null;
+      const current = i.storyId !== undefined ? i.storyId : preset;
+      const opts = [...state.data.stories]
+        .sort(byRecent)
+        .map((st) => `<option value="${st.id}" ${st.id === current ? "selected" : ""}>${esc(st.title)}</option>`)
+        .join("");
+      return `
+        <h3 class="serif">${s === "newIdea" ? "Nueva nota" : "Editar nota"}</h3>
+        <div class="form">
+          <label>Título<input id="f_title" value="${esc(i.title)}" placeholder="La carta que nunca llegó"></label>
+          <label>Descripción<textarea id="f_desc" placeholder="¿De qué trata?">${esc(i.description)}</textarea></label>
+          <label>Notas<textarea id="f_notes" placeholder="Pensamientos sueltos">${esc(i.notes)}</textarea></label>
+          <label>Etiquetas (separadas por coma)<input id="f_tags" value="${esc((i.tags || []).join(", "))}" placeholder="Escena, Emocional"></label>
+          <label>Relacionar con una historia<select id="f_story"><option value="">Ninguna</option>${opts}</select></label>
+          ${btnRow("saveIdea")}
+        </div>`;
+    }
+
+    if (s === "create") {
+      return `
+        <h3 class="serif">Crear</h3>
+        <div class="list-row" data-act="sheetNewStory"><span>📖 Nueva historia</span></div>
+        <div class="list-row" data-act="sheetNewIdea"><span>💡 Nueva nota</span></div>
+        <div class="btn-row"><button class="btn-ghost" data-act="closeSheet">Cerrar</button></div>`;
+    }
+
+    if (s === "storyMenu") {
+      return `
+        <h3 class="serif">Esta historia</h3>
+        <div class="list-row" data-act="editStory"><span>✎ Editar datos</span></div>
+        <div class="list-row" data-act="exportStory"><span>📤 Exportar esta historia</span></div>
+        <div class="list-row" data-act="importStory"><span>📥 Importar una historia</span></div>
+        <div class="list-row" data-act="delStory"><span class="danger-text">🗑 Eliminar historia</span></div>
+        <div class="btn-row"><button class="btn-ghost" data-act="closeSheet">Cerrar</button></div>`;
+    }
+
+    return "";
+  }
+
+  // ---------- Render ----------
+  function content() {
+    switch (state.screen) {
+      case "welcome": return welcome();
+      case "home": return homeScreen();
+      case "library": return libraryScreen();
+      case "search": return searchScreen();
+      case "profile": return profileScreen();
+      case "story": return storyScreen();
+      case "idea": return ideaScreen();
+      default: return homeScreen();
+    }
+  }
+
+  function render() {
+    const onTabs = TAB_SCREENS.includes(state.screen);
+    const tabbar = onTabs
+      ? `<nav class="tabbar">
+          ${TABBAR.map(([k, g, l]) => `
+            <button class="${state.screen === k ? "active" : ""} ${k === "create" ? "create" : ""}" data-act="tab" data-screen="${k}">
+              <span class="glyph">${g}</span><span>${l}</span>
+            </button>`).join("")}
+        </nav>`
+      : "";
+
+    app.innerHTML = `
+      <div class="page ${onTabs ? "with-tabbar" : ""}">${content()}</div>
+      ${tabbar}
+      ${state.sheet
+        ? `<div class="sheet-backdrop" data-act="backdrop"><div class="sheet">${sheetHTML()}</div></div>`
+        : ""}`;
+
+    // Buscador en vivo: actualiza solo los resultados, para no perder el foco del teclado
+    if (state.screen === "search") {
+      const q = document.getElementById("q");
+      const r = document.getElementById("results");
+      if (q && r) {
+        q.addEventListener("input", (e) => {
+          state.query = e.target.value;
+          r.innerHTML = resultsHTML(state.query);
+        });
+      }
+    }
+  }
+
+  // ---------- Acciones ----------
+  const actions = {
+    start: () => go("home"),
+    back: () => back(),
+    tab: (el) => {
+      if (el.dataset.screen === "create") return openSheet("create");
+      go(el.dataset.screen);
+    },
+    search: () => go("search"),
+
+    openStory: (el) => go("story", { storyId: el.dataset.id, storyTab: "resumen" }, true),
+    openStoryTab: (el) => go("story", { storyId: el.dataset.id, storyTab: el.dataset.tab }, true),
+    openIdea: (el) => go("idea", { ideaId: el.dataset.id }, true),
+    setTab: (el) => { state.storyTab = el.dataset.tab; render(); },
+
+    libTab: (el) => { state.libTab = el.dataset.tab; render(); },
+    toggleFav: () => { state.onlyFav = !state.onlyFav; render(); },
+
+    setTheme: (el) => {
+      try { localStorage.setItem(THEME_KEY, el.dataset.theme); } catch (e) {}
+      applyTheme(el.dataset.theme);
+      render();
+    },
+
+    sheetNewStory: () => openSheet("newStory"),
+    sheetNewIdea: () => openSheet("newIdea"),
+    noteForStory: () => openSheet("newIdea"),
+    editStory: () => openSheet("editStory"),
+    editIdea: () => openSheet("editIdea"),
+    storyMenu: () => openSheet("storyMenu"),
+    closeSheet: () => { state.sheet = null; render(); },
+    backdrop: (el, ev) => { if (ev.target === el) actions.closeSheet(); },
+
+    favStory: () => {
+      const s = story(state.storyId);
+      s.favorite = !s.favorite;
+      save(); render();
+    },
+    favIdea: () => {
+      const i = idea(state.ideaId);
+      i.favorite = !i.favorite;
+      save(); render();
+    },
+
+    saveStory: () => {
+      const editing = state.sheet === "editStory";
+      const title = document.getElementById("f_title").value.trim();
+      if (!title) return toast("Ponle un título a la historia");
+      const payload = {
+        title,
+        author: document.getElementById("f_author").value.trim(),
+        synopsis: document.getElementById("f_synopsis").value.trim(),
+        tags: parseTags(document.getElementById("f_tags").value),
+        updated: now(),
+      };
+      if (editing) {
+        Object.assign(story(state.storyId), payload);
+      } else {
+        state.data.stories.unshift({
+          id: uid(), created: now(), favorite: false, sections: emptySections(), ...payload,
+        });
+      }
+      save();
+      state.sheet = null;
+      toast("Historia guardada");
+      render();
+    },
+
+    saveIdea: () => {
+      const editing = state.sheet === "editIdea";
+      const title = document.getElementById("f_title").value.trim();
+      if (!title) return toast("Escribe el título de la nota");
+      const payload = {
+        title,
+        description: document.getElementById("f_desc").value.trim(),
+        notes: document.getElementById("f_notes").value.trim(),
+        tags: parseTags(document.getElementById("f_tags").value),
+        storyId: document.getElementById("f_story").value || null,
+        updated: now(),
+      };
+      if (editing) {
+        Object.assign(idea(state.ideaId), payload);
+      } else {
+        state.data.ideas.unshift({ id: uid(), created: now(), favorite: false, ...payload });
+      }
+      save();
+      state.sheet = null;
+      toast(editing ? "Nota actualizada" : "Nota guardada");
+      render();
+    },
+
+    delIdea: () => {
+      if (!confirm("¿Eliminar esta nota?")) return;
+      state.data.ideas = state.data.ideas.filter((i) => i.id !== state.ideaId);
+      save();
+      go("home");
+      toast("Nota eliminada");
+    },
+
+    delStory: () => {
+      if (!confirm("¿Eliminar esta historia? Sus notas se conservarán.")) return;
+      state.data.stories = state.data.stories.filter((s) => s.id !== state.storyId);
+      state.data.ideas.forEach((i) => { if (i.storyId === state.storyId) i.storyId = null; });
+      save();
+      go("library");
+      toast("Historia eliminada");
+    },
+
+    addItem: (el) => {
+      const txt = document.getElementById("newItem").value.trim();
+      if (!txt) return toast("Escribe algo primero");
+      const s = story(state.storyId);
+      s.sections[el.dataset.key] = [...(s.sections[el.dataset.key] || []), txt];
+      s.updated = now();
+      save(); render();
+    },
+
+    delItem: (el) => {
+      const s = story(state.storyId);
+      s.sections[el.dataset.key].splice(Number(el.dataset.idx), 1);
+      s.updated = now();
+      save(); render();
+    },
+
+    exportStory: () => {
+      const s = story(state.storyId);
+      if (!s) return;
+      const payload = {
+        format: "ink-lore-story",
+        version: 2,
+        story: s,
+        notes: state.data.ideas.filter((i) => i.storyId === s.id),
+      };
+      const slug = s.title
+        .toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "historia";
+      downloadBlob(
+        new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+        `ink-lore-${slug}.json`
+      );
+      state.sheet = null;
+      render();
+      toast("Historia exportada");
+    },
+
+    importStory: () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json,application/json";
+      input.onchange = () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (data.format !== "ink-lore-story" || !data.story || !data.story.title) {
+              throw new Error("formato");
+            }
+            const newId = uid();
+            const st = migrate({ stories: [data.story], ideas: [] }).stories[0];
+            state.data.stories.unshift({ ...st, id: newId, updated: now() });
+            (data.notes || []).forEach((n) => {
+              state.data.ideas.unshift({ ...n, id: uid(), storyId: newId, updated: now() });
+            });
+            save();
+            go("story", { storyId: newId, storyTab: "resumen" });
+            toast("Historia importada");
+          } catch (e) {
+            toast("Ese archivo no es una historia de Ink Lore");
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    },
+
+    wipe: () => {
+      if (!confirm("¿Borrar todas las historias y notas de este celular?")) return;
+      state.data = emptyData();
+      save(); render();
+      toast("Datos borrados");
+    },
+  };
+
+  // ---------- Eventos ----------
+  app.addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-act]");
+    if (!el) return;
+    const fn = actions[el.dataset.act];
+    if (fn) fn(el, ev);
+  });
+
+  // ---------- Arranque ----------
+  applyTheme(currentTheme());
+  state.screen = state.data.stories.length || state.data.ideas.length ? "home" : "welcome";
+  render();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
